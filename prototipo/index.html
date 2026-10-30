@@ -73,7 +73,7 @@ main .wrap{padding-block:36px 80px;display:grid;gap:52px}
 .pill{display:inline-flex;align-items:center;gap:7px;padding:4px 9px;border-radius:999px;font:500 10.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;border:1px solid currentColor;white-space:nowrap}
 .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .pill.locado{color:var(--ok)} .pill.vazio{color:var(--warn)} .pill.indisp{color:var(--dim)} .pill.devolucao{color:var(--dev)}
-.pill.desc{color:var(--accent)} .pill.reemb{color:var(--warn)} .pill.pago{color:var(--ok)} .pill.aguard{color:var(--muted)}
+.pill.desc{color:var(--accent)} .pill.reemb{color:var(--warn)} .pill.reemb-ok{color:var(--ok)} .pill.proprio{color:var(--fg)} .pill.aguard{color:var(--muted)}
 
 /* pendências agrupadas */
 .pg{border:1px solid var(--line);border-radius:6px;background:var(--panel);overflow:hidden}
@@ -426,11 +426,15 @@ const answers = {}, renewals = {}, autoriza = {};
 const hist = [
   ['14/10','Taxa de condomínio – Out','Cond. Manoel de Souza 48','6 unidades',3672.00,'desc'],
   ['09/10','Limpeza de caixa d’água','Cond. Manoel de Souza 48','6 × 1/12',270.00,'desc'],
-  ['02/10','Reparo hidráulico','Rua Padre Chagas, 215','Imóvel inteiro',380.00,'pago'],
+  ['02/10','Reparo hidráulico','Rua Padre Chagas, 215','Imóvel inteiro',380.00,'proprio'],
+  ['18/10','Desentupimento de esgoto','Av. Nilópolis, 455 · Loja','Imóvel inteiro',260.00,'reemb'],
   ['20/09','Seguro incêndio anual','Av. Nilópolis, 455 · Loja','Imóvel inteiro',648.00,'desc'],
-  ['11/09','Pintura da fachada (extra)','Ed. Atlântico','4 × 2/48',2960.00,'reemb']
+  ['11/09','Pintura da fachada (extra)','Ed. Atlântico','4 × 2/48',2960.00,'reemb-ok']
 ];
-const statusTxt = {desc:'Descontar no repasse',reemb:'Vou reembolsar',pago:'Já reembolsei'};
+const LBL = {desc:'Descontar no repasse',reemb:'Reembolso · pendente','reemb-ok':'Reembolso · concluído',proprio:'Eu mesmo pago',aguard:'Aguardando'};
+const pillK = k => `<span class="pill ${k}">${LBL[k]}</span>`;
+const keyA = a => a.s==='reemb'&&a.done ? 'reemb-ok' : a.s;
+const pillA = a => pillK(keyA(a));
 
 let fStatus='all', fQuery='', listMode='grp';
 const openGroups = new Set(['ms48']);
@@ -481,13 +485,15 @@ function pItem(p){
   const head = `<div><div class="pi-t">${p.title}</div>
       <div class="pi-m"><span>${n>1?`${n} unidades suas`:esc(imoveis[p.units[0]].nome)}</span><span>Lançada ${p.date}</span>${a?'':`<span style="color:var(--warn)">Responder até ${p.due}</span>`}<button class="link" data-pdf="${p.id}">${pdfIcon}PDF</button></div></div>
     <div class="pi-v"><span class="v num">${BRL(v)}</span><small>${n>1?`${n} × ${BRL(p.per)} · `:''}${p.regra}${p.taxa?' + 10% adm.':''}</small></div>`;
-  if(a) return `<div class="pi done">${head}<div class="pi-a"><span class="pill ${a.s}">${statusTxt[a.s]}</span>${a.c?`<span class="note">“${esc(a.c)}”</span>`:''}<button class="btn ghost sm" data-undo="${p.id}" style="margin-left:auto">Alterar</button></div></div>`;
+  if(a) return `<div class="pi ${a.s==='reemb'&&!a.done?'':'done'}">${head}<div class="pi-a">${pillA(a)}
+    ${a.s==='reemb'?`<div class="renew-opts" data-rd="${p.id}"><button aria-pressed="${!a.done}" data-rdone="0">Não concluído</button><button aria-pressed="${!!a.done}" data-rdone="1">Concluído</button></div>`:''}
+    ${a.c?`<span class="note">“${esc(a.c)}”</span>`:''}<button class="btn ghost sm" data-undo="${p.id}" style="margin-left:auto">Alterar</button></div></div>`;
   return `<div class="pi">${head}
     ${n>1?`<div class="breakdown">${names.map(x=>`<span class="chip">${x}</span>`).join('')}</div>`:''}
     <div class="pi-a">
       <button class="opt main" data-ans="${p.id}" data-s="desc">Descontar no repasse</button>
-      <button class="opt" data-ans="${p.id}" data-s="reemb">Vou reembolsar</button>
-      <button class="opt" data-ans="${p.id}" data-s="pago">Já reembolsei</button>
+      <button class="opt" data-ans="${p.id}" data-s="reemb" title="Você devolve o valor à imobiliária">Reembolso</button>
+      <button class="opt" data-ans="${p.id}" data-s="proprio" title="Você paga direto ao fornecedor">Eu mesmo pago</button>
       <button class="btn ghost sm" data-cmt="${p.id}">Comentar</button>
     </div>
     <div class="pi-c" id="cw-${p.id}" hidden><textarea id="c-${p.id}" placeholder="Comentário (ex.: pedir 2º orçamento, enviar comprovante)"></textarea></div>
@@ -587,14 +593,14 @@ function openImovel(id){
         <div class="stmt">${e.linhas.map(l=>`<div class="${l[1]<0?'neg':''}"><span>${esc(l[0])}</span><span>${l[1]<0?'− ':''}${BRL(Math.abs(l[1]))}</span></div>`).join('')}
         <div class="tot"><span>${e.liq>=0?'Líquido a receber':'A pagar à imobiliária'}</span><span>${BRL(Math.abs(e.liq))}</span></div></div>
         <div class="note">Taxa de administração: ${TAXA*100}% sobre o aluguel recebido. Despesas só entram aqui quando você escolhe "descontar no repasse".</div></div>
-      ${pm.length?`<div class="dr-s"><span class="label">Despesas deste imóvel</span>${pm.map(p=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;border-bottom:1px solid var(--line);padding-bottom:8px"><span>${p.title}<br><span class="muted" style="font-size:12px">${p.regra}</span></span><span style="text-align:right"><span class="num">${BRL(p.per)}</span><br>${answers[p.id]?`<span class="pill ${answers[p.id].s}">${statusTxt[answers[p.id].s]}</span>`:'<span class="pill aguard">Pendente</span>'}</span></div>`).join('')}</div>`:''}
+      ${pm.length?`<div class="dr-s"><span class="label">Despesas deste imóvel</span>${pm.map(p=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;border-bottom:1px solid var(--line);padding-bottom:8px"><span>${p.title}<br><span class="muted" style="font-size:12px">${p.regra}</span></span><span style="text-align:right"><span class="num">${BRL(p.per)}</span><br>${answers[p.id]?pillA(answers[p.id]):'<span class="pill aguard">Pendente</span>'}</span></div>`).join('')}</div>`:''}
     </div>`;
   $('#drawer').hidden=false; $('#dr-x').focus();
 }
 const closeDrawer = ()=>{ $('#drawer').hidden=true; };
 
 function renderHist(){
-  $('#hist').innerHTML = hist.map(h=>`<tr><td class="num">${h[0]}</td><td>${h[1]}</td><td>${h[2]}</td><td class="num muted">${h[3]}</td><td class="r num">${BRL(h[4])}</td><td><span class="pill ${h[5]}">${statusTxt[h[5]]}</span></td></tr>`).join('');
+  $('#hist').innerHTML = hist.map(h=>`<tr><td class="num">${h[0]}</td><td>${h[1]}</td><td>${h[2]}</td><td class="num muted">${h[3]}</td><td class="r num">${BRL(h[4])}</td><td>${pillK(h[5])}</td></tr>`).join('');
 }
 function renderOwner(){ renderTop(); renderPend(); renderImoveis(); }
 
@@ -605,6 +611,7 @@ document.addEventListener('click',e=>{
   if(!t){ const tr=e.target.closest('tr[data-im]'); if(tr) openImovel(+tr.dataset.im); return; }
   if(t.id==='dr-x') return closeDrawer();
   if(t.dataset.ans){ const id=+t.dataset.ans; answers[id]={s:t.dataset.s,c:($('#c-'+id)?.value||'').trim()}; renderOwner(); renderResp(); toast('Resposta enviada à imobiliária'); }
+  else if(t.dataset.rdone){ const id=+t.closest('[data-rd]').dataset.rd; answers[id].done=t.dataset.rdone==='1'; renderOwner(); renderResp(); toast(answers[id].done?'Reembolso marcado como concluído':'Reembolso marcado como pendente'); }
   else if(t.dataset.bulk){ pend.filter(p=>p.condo===t.dataset.bulk&&!answers[p.id]).forEach(p=>answers[p.id]={s:'desc',c:''}); renderOwner(); renderResp(); toast('Todas marcadas para desconto no repasse'); }
   else if(t.dataset.undo){ delete answers[+t.dataset.undo]; renderOwner(); renderResp(); }
   else if(t.dataset.cmt){ const w=$('#cw-'+t.dataset.cmt); w.hidden=!w.hidden; if(!w.hidden) w.querySelector('textarea').focus(); }
@@ -727,11 +734,12 @@ $('#a-save').onclick=$('#a-save2').onclick=()=>toast('Rascunho salvo');
 function renderResp(){
   const rows=[
     ['Conta de água','Manoel de Souza 48 · 101','Ana Ribeiro',87.40,'desc',''],
-    ['Conta de água','Manoel de Souza 48 · 202','Marta Lins',87.40,'reemb','Pago na sexta via PIX'],
+    ['Conta de água','Manoel de Souza 48 · 202','Marta Lins',87.40,'reemb-ok','Pago na sexta via PIX'],
+    ['Conta de água','Manoel de Souza 48 · 301','Paulo Viana',87.40,'proprio','Pago direto na concessionária'],
     ['Poda de árvores','Residencial Jardins · 09','Ana Ribeiro',120,'aguard',''],
   ];
-  pend.forEach(p=>{ const a=answers[p.id]; rows.push([p.title,condoById[p.condo].nome+(p.units.length>1?` · ${p.units.length} un.`:''),'Carlos Menezes',pendVal(p),a?a.s:'aguard',a?a.c:'']); });
-  $('#resp').innerHTML = rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="r num">${BRL(r[3])}</td><td><span class="pill ${r[4]}">${r[4]==='aguard'?'Aguardando':statusTxt[r[4]]}</span></td><td class="muted">${esc(r[5]||'—')}</td></tr>`).join('');
+  pend.forEach(p=>{ const a=answers[p.id]; rows.push([p.title,condoById[p.condo].nome+(p.units.length>1?` · ${p.units.length} un.`:''),'Carlos Menezes',pendVal(p),a?keyA(a):'aguard',a?a.c:'']); });
+  $('#resp').innerHTML = rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="r num">${BRL(r[3])}</td><td>${pillK(r[4])}</td><td class="muted">${esc(r[5]||'—')}</td></tr>`).join('');
 }
 
 /* ---------- alternar visão ---------- */
