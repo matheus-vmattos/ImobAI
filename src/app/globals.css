@@ -202,3 +202,14 @@ input::placeholder, textarea::placeholder { color: var(--dim) }
 
 /* fase 3: renovação */
 .pill.renov-atual { color: var(--ok) } .pill.renov-novo_valor { color: var(--accent) } .pill.renov-nao_renovar { color: var(--dev) }
+
+/* fase 4: repasse */
+.relatorio { display: grid; gap: 16px }
+.relatorio tr.total td { background: var(--panel-2); border-top: 1px solid var(--line-strong) }
+@media print {
+  :root { --bg: #fff; --panel: #fff; --panel-2: #f2f4f6; --fg: #10161d; --muted: #4a5560; --dim: #6b7680; --line: #d5dbe0; --line-strong: #aab4bc; --accent: #0b6f8a; color-scheme: light }
+  body { background: #fff !important; color: var(--fg) }
+  .top, .no-print, .actions, nextjs-portal { display: none !important }
+  .wrap { padding: 0 !important; max-width: none !important }
+  .kpi, .box, .panel { break-inside: avoid }
+}

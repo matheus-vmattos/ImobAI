@@ -8,7 +8,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const { data: p } = await supabase.from("proprietarios").select("nome").eq("user_id", user.id).maybeSingle();
   return (
     <>
-      <Topo links={[{ href: "/portal", label: "Meus imóveis" }]} nome={p?.nome ?? user.email ?? ""} />
+      <Topo links={[{ href: "/portal", label: "Meus imóveis" }, { href: "/portal/repasses", label: "Repasses" }]} nome={p?.nome ?? user.email ?? ""} />
       <main className="wrap">{children}</main>
     </>
   );

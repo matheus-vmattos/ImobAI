@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import * as avisos from "@/lib/avisos";
+import { BRL, data } from "@/lib/format";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { exigirAdmin } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -267,6 +270,8 @@ export async function registrarRenovacao(form: FormData) {
   } catch (e) {
     voltar(back, { erro: mensagem(e) });
   }
+  const aluguel = numero(form, "aluguel")!, fim = String(form.get("fim"));
+  after(() => avisos.renovacaoRegistrada(imovel_id, `contrato renovado até ${data(fim)}, aluguel de ${BRL(aluguel)}.`));
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(back, { ok: "Contrato renovado." });
@@ -287,6 +292,7 @@ export async function registrarNaoRenovacao(form: FormData) {
   } catch (e) {
     voltar(back, { erro: mensagem(e) });
   }
+  after(() => avisos.renovacaoRegistrada(imovel_id, "registramos que o contrato não será renovado. O imóvel entra em devolução e avisaremos o inquilino."));
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(back, { ok: "Não renovação registrada. Imóvel em devolução." });

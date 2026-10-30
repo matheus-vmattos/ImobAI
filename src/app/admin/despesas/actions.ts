@@ -2,6 +2,8 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import * as avisos from "@/lib/avisos";
 import { redirect } from "next/navigation";
 import { exigirAdmin } from "@/lib/auth";
 import { numero, obrigatorio, texto } from "@/lib/form";
@@ -95,6 +97,7 @@ export async function lancarDespesa(form: FormData) {
   } catch (e) {
     voltar(back, { erro: e instanceof Error ? e.message : "Não foi possível lançar a despesa." });
   }
+  if (enviar) after(() => avisos.despesaEnviada(id!));
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(`/admin/despesas/${id}`, { ok: enviar ? "Despesa enviada aos proprietários." : "Rascunho salvo." });
@@ -105,6 +108,7 @@ export async function enviarDespesa(form: FormData) {
   const id = String(form.get("id"));
   const { error } = await supabase.from("despesas").update({ status: "enviada", enviada_em: new Date().toISOString() }).eq("id", id).eq("status", "rascunho");
   if (error) voltar(`/admin/despesas/${id}`, { erro: error.message });
+  after(() => avisos.despesaEnviada(id));
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(`/admin/despesas/${id}`, { ok: "Despesa enviada aos proprietários." });
@@ -132,6 +136,7 @@ export async function confirmarReembolso(form: FormData) {
     .update({ reembolso: "confirmado", reembolso_confirmado_em: new Date().toISOString() })
     .eq("despesa_id", despesa).eq("proprietario_id", prop).eq("decisao", "reembolso").in("reembolso", ["pendente", "informado"]);
   if (error) voltar(back, { erro: error.message });
+  after(() => avisos.reembolsoConfirmado(despesa, prop));
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(back, { ok: "Recebimento confirmado." });
