@@ -63,7 +63,7 @@ Todas as tabelas usam Row Level Security:
 - **proprietario**: só lê os próprios imóveis, contratos, condomínios onde tem unidade e despesas enviadas a ele. Responde às despesas apenas pelas funções `responder_despesa` e `informar_reembolso`, que conferem o dono e bloqueiam alterações depois que a imobiliária confirma o reembolso.
 - PDFs ficam num bucket privado e abrem por link temporário, só para quem pode ver a despesa.
 
-A chave `SUPABASE_SERVICE_ROLE_KEY` fica só no servidor e é usada apenas para enviar convites, depois de checar que quem pediu é admin.
+A chave `SUPABASE_SERVICE_ROLE_KEY` fica só no servidor e é usada só para enviar convites e para guardar e abrir os PDFs, sempre depois de checar a permissão de quem pediu.
 
 ## Deploy
 Vercel: importe o repositório, configure as mesmas variáveis do `.env.local` e ajuste `NEXT_PUBLIC_SITE_URL` para a URL final.
