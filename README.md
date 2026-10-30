@@ -20,7 +20,7 @@ O protótipo visual está em `prototipo/index.html`.
 2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…` a `0004_…`). O `0002` cria o bucket privado `despesas` para os PDFs.
 3. (Opcional) Rode `supabase/seed.sql` para ter dados de exemplo.
 4. Em **Authentication → URL Configuration**, coloque a URL do app em *Site URL* e adicione `https://SEU-APP/auth/confirm` em *Redirect URLs* (e `http://localhost:3000/auth/confirm` para testar local).
-5. Em **Authentication → Email Templates**, nos modelos *Invite user* e *Reset password*, troque o link por:
+5. (Opcional) Os e-mails padrão de convite e de redefinição de senha já funcionam: o app abre a sessão em `/auth/sessao`. Para personalizá-los, configure um SMTP próprio (exigido no plano grátis) e, em **Authentication → Email Templates**, use o link:
    ```
    {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type={{ .Type }}&next=/definir-senha
    ```
@@ -74,4 +74,5 @@ Todas as tabelas usam Row Level Security:
 A chave `SUPABASE_SERVICE_ROLE_KEY` fica só no servidor e é usada só para enviar convites, guardar e abrir os PDFs e montar/registrar os e-mails, sempre depois de checar a permissão de quem pediu (ou, no cron, o `CRON_SECRET`).
 
 ## Deploy
-Vercel: importe o repositório, configure as mesmas variáveis do `.env.local` e ajuste `NEXT_PUBLIC_SITE_URL` para a URL final.
+Vercel: importe o repositório, configure as mesmas variáveis do `.env.local` e ajuste `NEXT_PUBLIC_SITE_URL` para a URL final. No Supabase, use a mesma URL em *Site URL* e `https://SEU-APP/**` em *Redirect URLs*.
+As fontes ficam em `src/app/fonts` (licença OFL), então o build não depende do Google Fonts.
