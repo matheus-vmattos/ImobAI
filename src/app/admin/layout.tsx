@@ -6,6 +6,7 @@ const LINKS = [
   { href: "/admin/proprietarios", label: "Proprietários" },
   { href: "/admin/condominios", label: "Condomínios" },
   { href: "/admin/imoveis", label: "Imóveis" },
+  { href: "/admin/despesas", label: "Despesas" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -4,6 +4,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { getSessao } from "@/lib/auth";
 import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
 import type { Contrato, Imovel } from "@/lib/types";
+import { carregarDespesas } from "../../despesas";
 
 export default async function ImovelPortal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,7 +21,7 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
   const pct = Number(im.imovel_proprietarios.find((v) => v.proprietarios?.user_id === user.id)?.percentual ?? 100);
   const dias = c ? diasAte(c.fim) : null;
 
-  // estimativa do repasse mensal (as despesas aprovadas entram na fase 2)
+  // estimativa do próximo repasse: aluguel, taxa, seguro e despesas marcadas para desconto
   const linhas: [string, number][] = [];
   if (im.status === "locado" && c) {
     const aluguel = Number(c.aluguel) * pct / 100;
@@ -28,6 +29,8 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
     linhas.push([`Taxa de administração (${Number(im.taxa_adm_pct)}%)`, -aluguel * Number(im.taxa_adm_pct) / 100]);
   }
   if (im.seguro_incendio_mensal) linhas.push(["Seguro incêndio (mensal)", -Number(im.seguro_incendio_mensal) * pct / 100]);
+  const { descontosPorImovel } = await carregarDespesas(supabase);
+  descontosPorImovel(im.id).forEach((d) => linhas.push([d.descricao, -d.valor]));
   const liquido = linhas.reduce((a, l) => a + l[1], 0);
 
   return (
@@ -77,7 +80,7 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
               </div>
             </div>
           ) : <p className="muted small" style={{ margin: 0 }}>Sem valores para este mês.</p>}
-          <small className="muted">Valor mensal estimado. Despesas de condomínio e IPTU aparecerão aqui quando forem lançadas.</small>
+          <small className="muted">Estimativa do próximo repasse. Inclui as despesas que você marcou para descontar.</small>
         </div>
       </div>
     </>

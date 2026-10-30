@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { exigirAdmin } from "@/lib/auth";
-import { BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { confirmarReembolso } from "./despesas/actions";
 import type { Imovel } from "@/lib/types";
 
 type ContratoLista = {
@@ -10,14 +11,25 @@ type ContratoLista = {
 
 export default async function AdminHome() {
   const { supabase } = await exigirAdmin();
-  const [{ data: imoveis }, { count: nProp }, { count: nCond }, { data: contratos }] = await Promise.all([
+  const [{ data: imoveis }, { count: nProp }, { count: nCond }, { data: contratos }, { data: reemb }] = await Promise.all([
     supabase.from("imoveis").select("status"),
     supabase.from("proprietarios").select("*", { count: "exact", head: true }),
     supabase.from("condominios").select("*", { count: "exact", head: true }),
     supabase.from("contratos")
       .select("id, imovel_id, inquilino, aluguel, fim, entrega_chaves_prevista, imoveis(identificacao, status, condominios(nome))")
       .eq("ativo", true).order("fim"),
+    supabase.from("despesa_itens").select("despesa_id, proprietario_id, valor, taxa_adm, reembolso_informado_em, despesas(descricao), proprietarios(nome)")
+      .eq("reembolso", "informado").order("reembolso_informado_em"),
   ]);
+  // reembolsos informados pelo proprietário, um por (despesa, proprietário)
+  const aConfirmar = new Map<string, { despesa_id: string; proprietario_id: string; descricao: string; nome: string; total: number; em: string | null }>();
+  ((reemb ?? []) as unknown as { despesa_id: string; proprietario_id: string; valor: number; taxa_adm: number; reembolso_informado_em: string | null; despesas: { descricao: string }; proprietarios: { nome: string } }[])
+    .forEach((r) => {
+      const k = r.despesa_id + r.proprietario_id;
+      const atual = aConfirmar.get(k);
+      aConfirmar.set(k, { despesa_id: r.despesa_id, proprietario_id: r.proprietario_id, descricao: r.despesas.descricao, nome: r.proprietarios.nome,
+        total: (atual?.total ?? 0) + Number(r.valor) + Number(r.taxa_adm), em: r.reembolso_informado_em });
+    });
   const cs = (contratos ?? []) as unknown as ContratoLista[];
   const cnt = (s: string) => (imoveis ?? []).filter((i) => i.status === s).length;
   const vencendo = cs.filter((c) => c.imoveis?.status === "locado" && diasAte(c.fim) <= RENOVACAO_DIAS);
@@ -37,6 +49,25 @@ export default async function AdminHome() {
           <div className="kpi"><span className="label">Aluguel mensal</span><span className="v">{BRL0(bruto)}</span><small>contratos ativos</small></div>
           <div className="kpi"><span className="label">Vencendo</span><span className={`v ${vencendo.length ? "attn" : ""}`}>{vencendo.length}</span><small>em até {RENOVACAO_DIAS} dias</small></div>
         </div>
+      </section>
+
+      <section className="sec">
+        <div className="sec-h"><h2>Reembolsos para confirmar</h2><span className="count">{aConfirmar.size}</span><span className="rule" /></div>
+        {aConfirmar.size ? (
+          <div className="box tbl-wrap"><table>
+            <thead><tr><th>Despesa</th><th>Proprietário</th><th className="r">Valor</th><th>Informado em</th><th /></tr></thead>
+            <tbody>{[...aConfirmar.values()].map((r) => (
+              <tr key={r.despesa_id + r.proprietario_id}>
+                <td><Link className="rowlink" href={`/admin/despesas/${r.despesa_id}`}>{r.descricao}</Link></td><td>{r.nome}</td>
+                <td className="r num">{BRL(r.total)}</td><td className="num muted">{data(r.em)}</td>
+                <td><form action={confirmarReembolso}>
+                  <input type="hidden" name="despesa_id" value={r.despesa_id} /><input type="hidden" name="proprietario_id" value={r.proprietario_id} />
+                  <input type="hidden" name="voltar" value="/admin" />
+                  <button className="btn sm primary">Confirmar recebimento</button></form></td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ) : <div className="empty">Nenhum reembolso aguardando confirmação.</div>}
       </section>
 
       <section className="sec">
