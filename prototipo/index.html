@@ -1,0 +1,513 @@
+<title>ImobAI Portal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: barra superior fixa + coluna única de 1080px; seções empilhadas por prioridade (pendências > imóveis > histórico). Visual escuro único, linhas finas, ciano como única cor de destaque. */
+:root{
+  --bg:#06080b; --panel:#0b0f14; --panel-2:#10161d; --line:rgba(140,205,230,.13); --line-strong:rgba(140,205,230,.28);
+  --fg:#e7edf1; --muted:#7f8c97; --dim:#56616b; --accent:#62d6f5; --accent-ink:#031117;
+  --ok:#4fd69a; --warn:#f0b54a; --bad:#ef6b6b;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:400 15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:1.5px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.label{font:500 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* barra superior */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:rgba(6,8,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.top-in,.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-in{display:flex;align-items:center;gap:20px;height:56px}
+.brand{font:600 18px/1 var(--f-display);letter-spacing:.32em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.brand i{width:9px;height:9px;border:1.5px solid var(--accent);transform:rotate(45deg);display:block}
+.seg{margin-left:auto;display:flex;border:1px solid var(--line-strong);border-radius:4px;padding:2px}
+.seg button{background:none;border:0;padding:6px 12px;border-radius:3px;font:500 12px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.who{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+.avatar{width:30px;height:30px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center;font:500 12px var(--f-mono);color:var(--fg)}
+@media (max-width:640px){.who span{display:none}.brand{letter-spacing:.2em}}
+
+.proto{border-bottom:1px solid var(--line);background:var(--panel)}
+.proto .wrap{padding-block:8px;font:400 12px/1.4 var(--f-mono);color:var(--dim);letter-spacing:.04em}
+
+main .wrap{padding-block:36px 80px;display:grid;gap:56px}
+
+/* hero */
+.hero{display:grid;gap:22px}
+.hero h1{margin:0;font:500 clamp(30px,5vw,44px)/1.05 var(--f-display);letter-spacing:.02em;text-wrap:balance}
+.hero h1 b{color:var(--accent);font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:6px;background:linear-gradient(var(--panel),var(--panel)) padding-box}
+.kpi{padding:16px 18px;display:grid;gap:8px;border-left:1px solid var(--line);min-width:0}
+.kpi:first-child{border-left:0}
+.kpi .v{font:500 24px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.kpi .v.attn{color:var(--warn)}
+.kpi small{color:var(--muted);font-size:12px}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi:nth-child(3){border-left:0}.kpi:nth-child(n+3){border-top:1px solid var(--line)}}
+
+/* títulos de seção com marcadores de canto */
+.sec{display:grid;gap:18px}
+.sec-h{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.sec-h h2{margin:0;font:600 15px/1 var(--f-display);letter-spacing:.24em;text-transform:uppercase;position:relative;padding-left:16px}
+.sec-h h2::before{content:"";position:absolute;left:0;top:50%;width:7px;height:7px;margin-top:-4px;border:1.5px solid var(--accent)}
+.sec-h .count{font:500 12px var(--f-mono);color:var(--muted)}
+.sec-h .rule{flex:1;height:1px;background:var(--line);min-width:40px;align-self:center}
+
+/* pendências */
+.pend{display:grid;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px 20px;display:grid;gap:14px;position:relative}
+.card.open{border-color:var(--line-strong)}
+.card.open::after{content:"";position:absolute;top:-1px;left:-1px;width:14px;height:14px;border-top:1.5px solid var(--warn);border-left:1.5px solid var(--warn);border-top-left-radius:6px}
+.exp-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 20px;align-items:start}
+.exp-title{font-weight:600;font-size:17px}
+.exp-meta{color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px}
+.exp-val{text-align:right;display:grid;gap:4px}
+.exp-val .v{font:500 22px/1 var(--f-mono)}
+.exp-val small{color:var(--muted);font:400 12px var(--f-mono)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line-strong);background:transparent;border-radius:4px;padding:9px 14px;font-weight:500;font-size:14px;transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--accent);background:rgba(98,214,245,.06)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{background:#86e1f8}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--fg);background:none;border-color:transparent}
+.btn.sm{padding:6px 10px;font-size:13px}
+.pdf-link{display:inline-flex;align-items:center;gap:8px;color:var(--accent);background:none;border:0;padding:0;font:500 13px var(--f-mono);letter-spacing:.04em}
+.pdf-link svg{width:14px;height:14px}
+.choice{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.choice button{text-align:left;padding:12px 14px;border:1px solid var(--line-strong);border-radius:4px;background:var(--panel-2);display:grid;gap:3px}
+.choice button b{font-weight:600;font-size:14px}
+.choice button span{color:var(--muted);font-size:12px;line-height:1.35}
+.choice button:hover{border-color:var(--accent)}
+@media (max-width:640px){.choice{grid-template-columns:1fr}.exp-top{grid-template-columns:1fr}.exp-val{text-align:left}}
+textarea{width:100%;min-height:64px;background:var(--bg);border:1px solid var(--line-strong);border-radius:4px;padding:10px 12px;resize:vertical}
+textarea::placeholder,input::placeholder{color:var(--dim)}
+.done-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.empty{border:1px dashed var(--line-strong);border-radius:6px;padding:28px;text-align:center;color:var(--muted)}
+
+/* pílulas de status */
+.pill{display:inline-flex;align-items:center;gap:7px;padding:4px 9px;border-radius:999px;font:500 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;border:1px solid currentColor;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.locado{color:var(--ok)} .pill.vazio{color:var(--warn)} .pill.indisp{color:var(--dim)}
+.pill.desc{color:var(--accent)} .pill.reemb{color:var(--warn)} .pill.pago{color:var(--ok)} .pill.aguard{color:var(--muted)}
+
+/* imóveis */
+.grid-im{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.grid-im{grid-template-columns:1fr}}
+.im{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px 20px;display:grid;gap:14px;align-content:start}
+.im-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.im-h h3{margin:0;font-size:17px;font-weight:600}
+.im-h p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.facts div{background:var(--panel-2);padding:10px 12px;display:grid;gap:5px;min-width:0}
+.facts .v{font:500 14px/1.2 var(--f-mono)}
+.bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.bar.near i{background:var(--warn)}
+.renew{border-top:1px solid var(--line);padding-top:14px;display:grid;gap:10px}
+.renew-opts{display:flex;flex-wrap:wrap;gap:6px}
+.renew-opts button{border:1px solid var(--line-strong);background:none;border-radius:4px;padding:7px 11px;font-size:13px}
+.renew-opts button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:rgba(98,214,245,.07)}
+.inline-in{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.money-in{display:flex;align-items:center;border:1px solid var(--line-strong);border-radius:4px;background:var(--bg);padding-left:10px}
+.money-in span{color:var(--muted);font:400 13px var(--f-mono)}
+.money-in input{background:none;border:0;outline:0;padding:8px 10px 8px 6px;width:120px;font-family:var(--f-mono)}
+.note{font-size:13px;color:var(--muted)}
+.note.ok{color:var(--ok)}
+
+/* tabela */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);font-size:14px;white-space:nowrap}
+th{font:500 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);background:var(--panel-2)}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{border:1px solid var(--line);background:none;border-radius:999px;padding:5px 12px;font-size:13px;color:var(--muted)}
+.filters button[aria-pressed="true"]{border-color:var(--accent);color:var(--fg)}
+
+/* imobiliária: lançamento */
+.launch{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media (max-width:860px){.launch{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px;display:grid;gap:16px}
+.field{display:grid;gap:7px}
+.field input,.field select{background:var(--bg);border:1px solid var(--line-strong);border-radius:4px;padding:9px 11px;width:100%}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.drop{border:1px dashed var(--line-strong);border-radius:4px;padding:16px;display:flex;gap:12px;align-items:center;color:var(--muted);font-size:13px}
+.drop label{color:var(--accent);cursor:pointer;font-weight:500}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.modes{display:flex;gap:6px;flex-wrap:wrap}
+.units{display:grid;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.u{display:grid;grid-template-columns:22px minmax(0,1fr) 82px 96px;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-size:14px}
+.u:last-child{border-bottom:0}
+.u.off{color:var(--dim)}
+.u.ext{background:repeating-linear-gradient(-45deg,transparent 0 6px,rgba(140,205,230,.04) 6px 12px)}
+.u input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px}
+.u input[type=number]{width:100%;background:var(--bg);border:1px solid var(--line-strong);border-radius:3px;padding:5px 8px;font-family:var(--f-mono);text-align:right}
+.u .who-u{color:var(--muted);font-size:12px;display:block}
+.u .val{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.u-head{background:var(--panel-2)}
+.u-head span{font:500 10px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.check{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border-radius:4px;border:1px solid var(--line-strong);font-size:13px;flex-wrap:wrap}
+.check.ok{border-color:rgba(79,214,154,.45);color:var(--ok)}
+.check.bad{border-color:rgba(239,107,107,.5);color:var(--bad)}
+.split{display:flex;height:8px;border-radius:2px;overflow:hidden;gap:2px}
+.split i{display:block;background:var(--accent);opacity:.85}
+.split i.ext{background:var(--dim);opacity:.6}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:4px;font-weight:500;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:20}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* modal PDF */
+.modal{position:fixed;inset:0;background:rgba(2,4,6,.78);backdrop-filter:blur(6px);z-index:30;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
+.sheet{width:min(560px,100%);max-height:calc(100vh - 48px);overflow:auto;background:var(--panel);border:1px solid var(--line-strong);border-radius:6px}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+.paper{margin:16px;background:#f4f5f2;color:#1b1f22;border-radius:2px;padding:24px;font-size:13px;display:grid;gap:14px}
+.paper h4{margin:0;font-size:16px}
+.paper .pl{display:flex;justify-content:space-between;border-bottom:1px solid #d6d8d3;padding-bottom:6px;gap:12px}
+.paper .tot{font-size:18px;font-weight:600}
+.paper small{color:#5a6166}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><i></i>ImobAI</div>
+    <div class="seg" role="group" aria-label="Alternar visão">
+      <button id="v-owner" aria-pressed="true">Proprietário</button>
+      <button id="v-admin" aria-pressed="false">Imobiliária</button>
+    </div>
+    <div class="who"><span id="who-name">Carlos Menezes</span><div class="avatar" id="who-av">CM</div></div>
+  </div>
+</header>
+<div class="proto"><div class="wrap">Protótipo visual · dados de exemplo · nada é salvo</div></div>
+
+<main>
+  <!-- VISÃO PROPRIETÁRIO -->
+  <div class="wrap" id="owner">
+    <section class="hero">
+      <div class="label">Portal do proprietário · 30 out 2026</div>
+      <h1>Olá, Carlos. Você tem <b id="h-count">3 despesas</b> aguardando sua decisão.</h1>
+      <div class="kpis">
+        <div class="kpi"><span class="label">Pendências</span><span class="v attn num" id="k-pend">3</span><small id="k-pend-v">R$ 529,55 no total</small></div>
+        <div class="kpi"><span class="label">Imóveis</span><span class="v num">4</span><small>2 locados · 1 vazio · 1 indisp.</small></div>
+        <div class="kpi"><span class="label">Aluguel mensal</span><span class="v num">R$ 6.050</span><small>bruto, 2 contratos</small></div>
+        <div class="kpi"><span class="label">Próximo repasse</span><span class="v num">10/11</span><small id="k-rep">previsão R$ 5.445,00</small></div>
+      </div>
+    </section>
+
+    <section class="sec" id="sec-pend">
+      <div class="sec-h"><h2>Para aprovar</h2><span class="count" id="c-pend"></span><span class="rule"></span></div>
+      <div class="pend" id="pend"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-h"><h2>Meus imóveis</h2><span class="count">4</span><span class="rule"></span></div>
+      <div class="grid-im" id="imoveis"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-h"><h2>Histórico de despesas</h2><span class="rule"></span>
+        <div class="filters" id="hist-f">
+          <button aria-pressed="true" data-f="all">Todas</button>
+          <button aria-pressed="false" data-f="desc">Descontadas</button>
+          <button aria-pressed="false" data-f="reemb">Reembolso</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Data</th><th>Despesa</th><th>Imóvel</th><th>Rateio</th><th class="r">Sua parte</th><th>Decisão</th></tr></thead>
+        <tbody id="hist"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <!-- VISÃO IMOBILIÁRIA -->
+  <div class="wrap" id="admin" hidden>
+    <section class="hero">
+      <div class="label">Painel da imobiliária</div>
+      <h1>Lançar despesa de condomínio</h1>
+    </section>
+
+    <section class="launch">
+      <div class="panel">
+        <div class="field"><label class="label" for="a-cond">Condomínio</label>
+          <select id="a-cond"><option>Cond. Manoel de Souza 48</option><option>Ed. Atlântico</option></select></div>
+        <div class="row2">
+          <div class="field"><label class="label" for="a-tipo">Tipo</label>
+            <select id="a-tipo"><option>Variável</option><option>Fixa</option><option>IPTU</option><option>Extra</option></select></div>
+          <div class="field"><label class="label" for="a-comp">Competência</label>
+            <input id="a-comp" value="Out/2026"></div>
+        </div>
+        <div class="field"><label class="label" for="a-desc">Descrição</label>
+          <input id="a-desc" value="Conta de água – área comum e consumo coletivo"></div>
+        <div class="field"><label class="label" for="a-total">Valor total da conta</label>
+          <div class="money-in"><span>R$</span><input id="a-total" class="num" value="1.048,80" inputmode="decimal" style="width:100%"></div></div>
+        <div class="drop">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>
+          <div><span id="a-file">agua-out-2026.pdf · 184 KB</span><br><label for="a-pdf">Trocar PDF</label><input type="file" id="a-pdf" accept="application/pdf"></div>
+        </div>
+        <div class="field"><span class="label">Prazo para o proprietário responder</span>
+          <div class="modes renew-opts" id="a-prazo"><button aria-pressed="false">3 dias</button><button aria-pressed="true">7 dias</button><button aria-pressed="false">15 dias</button></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="sec-h"><h2>Rateio</h2><span class="rule"></span></div>
+        <div class="row2">
+          <div class="field"><label class="label" for="a-div">Dividir em (cotas)</label>
+            <input id="a-div" type="number" min="1" value="12" class="num"></div>
+          <div class="field"><span class="label">Regra</span>
+            <div class="modes renew-opts" id="a-mode"><button aria-pressed="true" data-m="cotas">Cotas</button><button aria-pressed="false" data-m="pct">%</button><button aria-pressed="false" data-m="fixo">Valor fixo</button></div></div>
+        </div>
+        <div class="note">Padrão do condomínio: 12 cotas iguais (10 aptos + 2 lojas que não são da carteira). Altere à vontade só para esta conta.</div>
+        <div class="split" id="a-split" aria-hidden="true"></div>
+        <div class="units" id="a-units"></div>
+        <div class="check" id="a-check"></div>
+        <div class="actions">
+          <button class="btn primary" id="a-send">Enviar aos proprietários</button>
+          <button class="btn ghost" id="a-save">Salvar rascunho</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-h"><h2>Respostas recentes</h2><span class="rule"></span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Despesa</th><th>Unidade</th><th>Proprietário</th><th class="r">Valor</th><th>Status</th><th>Comentário</th></tr></thead>
+        <tbody id="resp"></tbody>
+      </table></div>
+    </section>
+  </div>
+</main>
+
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <div class="sheet-h"><span class="label" id="m-title">Documento</span><button class="btn sm" id="m-close">Fechar</button></div>
+    <div class="paper" id="m-body"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const BRL = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const $ = s => document.querySelector(s);
+const pdfIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>';
+const toast = msg => { const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); };
+
+/* ---------- dados de exemplo ---------- */
+const pend = [
+  {id:1,title:'Conta de água',where:'Cond. Manoel de Souza 48 · Apto 302',date:'28/10',due:'04/11',total:1048.80,cotas:'1 de 12 cotas',val:87.40,
+   doc:{emissor:'Serviço Municipal de Água (exemplo)',ref:'Out/2026',linhas:[['Consumo coletivo 118 m³',822.30],['Taxa de esgoto',198.50],['Tarifa básica',28.00]]}},
+  {id:2,title:'Manutenção do elevador – troca de cabos',where:'Cond. Manoel de Souza 48 · Apto 302',date:'25/10',due:'01/11',total:3600,cotas:'1 de 12 cotas',val:300.00,
+   doc:{emissor:'Elevadores Vertical Ltda. (exemplo)',ref:'OS 2291',linhas:[['Cabos de tração (4 un.)',2480],['Mão de obra',920],['Deslocamento',200]]}},
+  {id:3,title:'IPTU 2026 – parcela 10/10',where:'Rua Padre Chagas 215 · Casa',date:'22/10',due:'05/11',total:142.15,cotas:'Imóvel inteiro',val:142.15,
+   doc:{emissor:'Prefeitura Municipal (exemplo)',ref:'Inscrição 004.219.88',linhas:[['Imposto predial',118.40],['Taxa de coleta',23.75]]}}
+];
+const imoveis = [
+  {nome:'Apto 302',end:'Cond. Manoel de Souza 48',status:'locado',aluguel:2350,ini:'16/12/2024',fim:'15/12/2026',pct:92,dias:46,inq:'Juliana P.'},
+  {nome:'Apto 1102',end:'Ed. Atlântico · Av. Beira-Mar 900',status:'locado',aluguel:3700,ini:'01/03/2025',fim:'28/02/2028',pct:33,dias:486,inq:'Ricardo A.'},
+  {nome:'Casa',end:'Rua Padre Chagas 215',status:'vazio',aluguel:2900,anuncio:'Anunciado há 23 dias · 4 visitas'},
+  {nome:'Sala 804',end:'Av. Ipiranga 1200',status:'indisp',motivo:'Em reforma até jan/2027'}
+];
+const hist = [
+  ['14/10','Taxa de condomínio – Out','Apto 302','1 de 12 cotas',612.00,'desc'],
+  ['09/10','Limpeza de caixa d’água','Apto 302','1 de 12 cotas',45.00,'desc'],
+  ['02/10','Reparo hidráulico','Casa','Imóvel inteiro',380.00,'pago'],
+  ['20/09','Conta de luz – área comum','Apto 1102','1 de 48 cotas',22.60,'desc'],
+  ['11/09','Pintura da fachada (rateio extra)','Apto 1102','2 de 48 cotas',740.00,'reemb']
+];
+const statusTxt = {desc:'Descontar no repasse',reemb:'Vou reembolsar',pago:'Já reembolsei'};
+const pillCls = {desc:'desc',reemb:'reemb',pago:'pago'};
+const answers = {};
+
+/* ---------- proprietário ---------- */
+function renderPend(){
+  const open = pend.filter(p=>!answers[p.id]);
+  const sum = open.reduce((a,p)=>a+p.val,0);
+  $('#c-pend').textContent = open.length ? `${open.length} pendente${open.length>1?'s':''}` : 'tudo em dia';
+  $('#k-pend').textContent = open.length;
+  $('#k-pend').classList.toggle('attn', open.length>0);
+  $('#k-pend-v').textContent = open.length ? `${BRL(sum)} no total` : 'nenhuma pendência';
+  $('#h-count').textContent = open.length ? `${open.length} despesa${open.length>1?'s':''}` : 'nenhuma despesa';
+  const desc = pend.filter(p=>answers[p.id]?.s==='desc').reduce((a,p)=>a+p.val,0);
+  $('#k-rep').textContent = `previsão ${BRL(6050*0.9 - desc)}`;
+
+  $('#pend').innerHTML = pend.map(p=>{
+    const a = answers[p.id];
+    const head = `
+      <div class="exp-top">
+        <div><div class="exp-title">${p.title}</div>
+          <div class="exp-meta"><span>${p.where}</span><span>Lançada ${p.date}</span>${a?'':`<span style="color:var(--warn)">Responder até ${p.due}</span>`}</div></div>
+        <div class="exp-val"><span class="v num">${BRL(p.val)}</span><small>${p.cotas} · total ${BRL(p.total)}</small></div>
+      </div>`;
+    if(a) return `<article class="card">${head}
+      <div class="done-row"><span class="pill ${pillCls[a.s]}">${statusTxt[a.s]}</span>
+        ${a.c?`<span class="note">“${a.c.replace(/</g,'&lt;')}”</span>`:''}
+        <button class="pdf-link" data-pdf="${p.id}">${pdfIcon}Ver PDF</button>
+        <button class="btn ghost sm" data-undo="${p.id}" style="margin-left:auto">Alterar resposta</button></div></article>`;
+    return `<article class="card open">${head}
+      <div class="choice">
+        <button data-ans="${p.id}" data-s="desc"><b>Descontar no repasse</b><span>Sai do próximo repasse (10/11)</span></button>
+        <button data-ans="${p.id}" data-s="reemb"><b>Vou reembolsar</b><span>Você paga diretamente à imobiliária</span></button>
+        <button data-ans="${p.id}" data-s="pago"><b>Já reembolsei</b><span>Informe o comprovante no comentário</span></button>
+      </div>
+      <textarea id="c-${p.id}" placeholder="Comentário opcional (ex.: questionar valor, pedir orçamento)"></textarea>
+      <div class="actions"><button class="pdf-link" data-pdf="${p.id}">${pdfIcon}Ver conta em PDF</button></div>
+    </article>`;
+  }).join('');
+}
+
+function renderImoveis(){
+  $('#imoveis').innerHTML = imoveis.map((m,i)=>{
+    const pill = {locado:'<span class="pill locado">Locado</span>',vazio:'<span class="pill vazio">Vazio</span>',indisp:'<span class="pill indisp">Indisponível</span>'}[m.status];
+    let body='';
+    if(m.status==='locado'){
+      const near = m.dias<=90;
+      body = `
+      <div class="facts">
+        <div><span class="label">Aluguel</span><span class="v">${BRL(m.aluguel)}</span></div>
+        <div><span class="label">Contrato até</span><span class="v">${m.fim}</span></div>
+        <div><span class="label">Restam</span><span class="v" style="color:${near?'var(--warn)':'inherit'}">${m.dias} dias</span></div>
+      </div>
+      <div class="bar ${near?'near':''}"><i style="width:${m.pct}%"></i></div>
+      <div class="note">Inquilino: ${m.inq} · início ${m.ini}</div>
+      <div class="renew">
+        <span class="label">Próxima renovação${near?' · decisão necessária':''}</span>
+        <div class="renew-opts" data-renew="${i}">
+          <button aria-pressed="false" data-r="same">Renovar pelo valor atual</button>
+          <button aria-pressed="false" data-r="new">Propor novo valor</button>
+          <button aria-pressed="false" data-r="no">Não renovar</button>
+        </div>
+        <div id="rn-${i}"></div>
+      </div>`;
+    } else if(m.status==='vazio'){
+      body = `<div class="facts"><div><span class="label">Pedida</span><span class="v">${BRL(m.aluguel)}</span></div><div><span class="label">Vago desde</span><span class="v">07/10</span></div><div><span class="label">Visitas</span><span class="v">4</span></div></div><div class="note">${m.anuncio}</div>`;
+    } else {
+      body = `<div class="note">${m.motivo}</div>`;
+    }
+    return `<article class="im"><div class="im-h"><div><h3>${m.nome}</h3><p>${m.end}</p></div>${pill}</div>${body}</article>`;
+  }).join('');
+}
+
+function renderHist(f='all'){
+  $('#hist').innerHTML = hist.filter(h=>f==='all'||h[5]===f||(f==='reemb'&&h[5]==='pago')).map(h=>
+    `<tr><td class="num">${h[0]}</td><td>${h[1]}</td><td>${h[2]}</td><td class="num" style="color:var(--muted)">${h[3]}</td><td class="r num">${BRL(h[4])}</td><td><span class="pill ${pillCls[h[5]]}">${statusTxt[h[5]]}</span></td></tr>`).join('');
+}
+
+document.addEventListener('click',e=>{
+  const t = e.target.closest('button'); if(!t) return;
+  if(t.dataset.ans){ const id=+t.dataset.ans; answers[id]={s:t.dataset.s,c:$('#c-'+id).value.trim()}; renderPend(); toast('Resposta enviada à imobiliária'); renderResp(); }
+  else if(t.dataset.undo){ delete answers[+t.dataset.undo]; renderPend(); renderResp(); }
+  else if(t.dataset.pdf){ openPdf(+t.dataset.pdf); }
+  else if(t.dataset.r){
+    const box=t.parentElement, i=box.dataset.renew;
+    box.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===t));
+    const m=imoveis[i], out=$('#rn-'+i);
+    if(t.dataset.r==='new'){ out.innerHTML=`<div class="inline-in"><div class="money-in"><span>R$</span><input id="rv-${i}" inputmode="decimal" value="${(m.aluguel*1.06).toFixed(0)}"></div><button class="btn sm primary" data-rsend="${i}">Enviar proposta</button></div><div class="note" style="margin-top:6px">Atual ${BRL(m.aluguel)} · referência IGP-M 12m: +4,1%</div>`; }
+    else if(t.dataset.r==='no'){ out.innerHTML=`<div class="note ok">Registrado: não renovar. A imobiliária avisará o inquilino com 30 dias de antecedência.</div>`; toast('Decisão registrada'); }
+    else { out.innerHTML=`<div class="note ok">Registrado: renovar por ${BRL(m.aluguel)} + reajuste contratual.</div>`; toast('Decisão registrada'); }
+  }
+  else if(t.dataset.rsend){ const i=t.dataset.rsend; const v=$('#rv-'+i).value; $('#rn-'+i).innerHTML=`<div class="note ok">Proposta enviada: R$ ${v} a partir da renovação.</div>`; toast('Proposta enviada'); }
+  else if(t.dataset.f){ document.querySelectorAll('#hist-f button').forEach(b=>b.setAttribute('aria-pressed',b===t)); renderHist(t.dataset.f); }
+});
+
+function openPdf(id){
+  const p=pend.find(x=>x.id===id), d=p.doc;
+  $('#m-title').textContent = p.title+' · PDF';
+  $('#m-body').innerHTML = `<div><h4>${d.emissor}</h4><small>Referência ${d.ref} · documento ilustrativo</small></div>
+    ${d.linhas.map(l=>`<div class="pl"><span>${l[0]}</span><span>${BRL(l[1])}</span></div>`).join('')}
+    <div class="pl tot"><span>Total</span><span>${BRL(p.total)}</span></div>
+    <small>Sua parte: ${BRL(p.val)} (${p.cotas})</small>`;
+  $('#modal').hidden=false; $('#m-close').focus();
+}
+$('#m-close').onclick=()=>$('#modal').hidden=true;
+$('#modal').onclick=e=>{ if(e.target.id==='modal') $('#modal').hidden=true; };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#modal').hidden=true; });
+
+/* ---------- imobiliária: rateio ---------- */
+const units = [
+  ['Apto 101','Ana Ribeiro',1,1],['Apto 102','Ana Ribeiro',1,1],['Apto 201','Paulo Viana',1,1],['Apto 202','Marta Lins',1,1],
+  ['Apto 301','Paulo Viana',1,1],['Apto 302','Carlos Menezes',1,1],['Apto 401','Lia Torres',1,1],['Apto 402','Lia Torres',1,1],
+  ['Apto 501','Bruno Sá',1,1],['Apto 502','Bruno Sá',1,1]
+].map(u=>({nome:u[0],dono:u[1],on:true,cotas:1}));
+let mode='cotas';
+const parseBR = s => parseFloat(String(s).replace(/\./g,'').replace(',','.'))||0;
+
+function renderUnits(){
+  const total=parseBR($('#a-total').value), div=Math.max(0,+$('#a-div').value||0);
+  const unit = mode==='cotas'?'cotas':mode==='pct'?'%':'R$';
+  const used = units.filter(u=>u.on).reduce((a,u)=>a+(+u.cotas||0),0);
+  const val = u => !u.on?0: mode==='cotas'? (div?total*u.cotas/div:0) : mode==='pct'? total*u.cotas/100 : +u.cotas;
+  const ext = mode==='cotas' ? div-used : mode==='pct' ? 100-used : total-used;
+  const extVal = mode==='cotas' ? (div?total*ext/div:0) : mode==='pct' ? total*ext/100 : ext;
+
+  $('#a-units').innerHTML = `<div class="u u-head"><span></span><span>Unidade</span><span style="text-align:right">${unit}</span><span style="text-align:right">Valor</span></div>`+
+    units.map((u,i)=>`<div class="u ${u.on?'':'off'}">
+      <input type="checkbox" id="uo-${i}" ${u.on?'checked':''} aria-label="Incluir ${u.nome}">
+      <label for="uo-${i}">${u.nome}<span class="who-u">${u.dono}</span></label>
+      <input type="number" id="uc-${i}" min="0" step="${mode==='fixo'?'0.01':'0.5'}" value="${u.cotas}" ${u.on?'':'disabled'} aria-label="${unit} de ${u.nome}">
+      <span class="val">${BRL(val(u))}</span></div>`).join('')+
+    `<div class="u ext ${Math.abs(ext)<1e-9?'off':''}"><span></span><span>Fora da carteira<span class="who-u">lojas, unidades de terceiros</span></span><span class="val num">${mode==='fixo'?BRL(ext):(+ext.toFixed(2))}</span><span class="val">${BRL(extVal)}</span></div>`;
+
+  const sumSys = units.reduce((a,u)=>a+Math.round(val(u)*100),0)/100;
+  const c=$('#a-check');
+  if(ext < -1e-9){ c.className='check bad'; c.innerHTML=`<span>As unidades somam ${mode==='fixo'?BRL(used):used+' '+unit}, acima do total (${mode==='cotas'?div+' cotas':mode==='pct'?'100%':BRL(total)}).</span><span>Ajuste antes de enviar</span>`; }
+  else { c.className='check ok'; c.innerHTML=`<span>Carteira: ${BRL(sumSys)} · fora: ${BRL(extVal)}</span><span class="num">= ${BRL(sumSys+extVal)} ✓</span>`; }
+  $('#a-send').disabled = ext < -1e-9;
+  $('#a-send').style.opacity = ext < -1e-9 ? .4 : 1;
+
+  const parts = units.filter(u=>u.on&&val(u)>0).map(u=>val(u));
+  const all = total||1;
+  $('#a-split').innerHTML = parts.map(v=>`<i style="width:${v/all*100}%"></i>`).join('') + (extVal>0?`<i class="ext" style="width:${extVal/all*100}%"></i>`:'');
+}
+$('#a-units').addEventListener('input',e=>{
+  const id=e.target.id; const i=+id.split('-')[1];
+  if(id.startsWith('uo-')) units[i].on=e.target.checked;
+  if(id.startsWith('uc-')){ units[i].cotas=parseFloat(e.target.value)||0; const keep=id; renderUnits(); const el=$('#'+keep); el.focus(); el.setSelectionRange?.(el.value.length,el.value.length); return; }
+  renderUnits();
+});
+['#a-total','#a-div'].forEach(s=>$(s).addEventListener('input',renderUnits));
+$('#a-mode').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return; mode=b.dataset.m;
+  $('#a-mode').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  $('#a-div').disabled = mode!=='cotas';
+  const total=parseBR($('#a-total').value);
+  units.forEach(u=>u.cotas = mode==='cotas'?1 : mode==='pct'? +(100/12).toFixed(2) : +(total/12).toFixed(2));
+  renderUnits();
+});
+$('#a-prazo').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; $('#a-prazo').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b)); });
+$('#a-pdf').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) $('#a-file').textContent=`${f.name} · ${Math.round(f.size/1024)} KB`; });
+$('#a-send').onclick=()=>{ const n=new Set(units.filter(u=>u.on&&u.cotas>0).map(u=>u.dono)).size; toast(`Enviado a ${n} proprietários`); };
+$('#a-save').onclick=()=>toast('Rascunho salvo');
+
+function renderResp(){
+  const base = [
+    ['Conta de água','Apto 101','Ana Ribeiro',87.40,'desc',''],
+    ['Conta de água','Apto 201','Paulo Viana',87.40,'reemb','Pago na sexta via PIX'],
+    ['Conta de água','Apto 402','Lia Torres',87.40,'aguard',''],
+    ['Manutenção do elevador','Apto 501','Bruno Sá',300.00,'desc','Pedir 2º orçamento na próxima'],
+  ];
+  const a=answers[1];
+  base.splice(2,0,['Conta de água','Apto 302','Carlos Menezes',87.40,a?a.s:'aguard',a?a.c:'']);
+  $('#resp').innerHTML = base.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="r num">${BRL(r[3])}</td><td><span class="pill ${r[4]}">${r[4]==='aguard'?'Aguardando':statusTxt[r[4]]}</span></td><td style="color:var(--muted)">${(r[5]||'—').replace(/</g,'&lt;')}</td></tr>`).join('');
+}
+
+/* ---------- alternar visão ---------- */
+function view(v){
+  const admin = v==='admin';
+  $('#owner').hidden=admin; $('#admin').hidden=!admin;
+  $('#v-owner').setAttribute('aria-pressed',!admin); $('#v-admin').setAttribute('aria-pressed',admin);
+  $('#who-name').textContent = admin?'Equipe ImobAI':'Carlos Menezes'; $('#who-av').textContent = admin?'IM':'CM';
+  if(location.hash !== '#'+(admin?'imobiliaria':'proprietario')) history.replaceState(null,'','#'+(admin?'imobiliaria':'proprietario'));
+}
+$('#v-owner').onclick=()=>view('owner'); $('#v-admin').onclick=()=>view('admin');
+window.addEventListener('hashchange',()=>view(location.hash==='#imobiliaria'?'admin':'owner'));
+
+renderPend(); renderImoveis(); renderHist(); renderUnits(); renderResp();
+view(location.hash==='#imobiliaria'?'admin':'owner');
+</script>
