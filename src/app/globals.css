@@ -199,3 +199,6 @@ input::placeholder, textarea::placeholder { color: var(--dim) }
 .chips { grid-column: 1/-1; display: flex; flex-wrap: wrap; gap: 6px }
 .chip { font: 400 12px var(--f-mono); border: 1px solid var(--line); border-radius: 3px; padding: 3px 7px; color: var(--muted) }
 @media (max-width: 640px) { .pi { grid-template-columns: 1fr } .pi-v { text-align: left } }
+
+/* fase 3: renovação */
+.pill.renov-atual { color: var(--ok) } .pill.renov-novo_valor { color: var(--accent) } .pill.renov-nao_renovar { color: var(--dev) }

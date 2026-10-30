@@ -8,7 +8,7 @@ Banco de imóveis de proprietários com portal web. A imobiliária cadastra prop
 
 1. **Cadastros e login** ✅: proprietários, condomínios, imóveis (com coproprietários e %), contratos, devolução, portal do proprietário (leitura)
 2. **Despesas** ✅: lançamento em condomínio (rateio por cotas, % ou valor fixo, com cotas fora da carteira) ou imóvel avulso, PDF, taxa de administração opcional, aprovação pelo proprietário (descontar / reembolso / eu mesmo pago) e confirmação de reembolso pela imobiliária
-3. Renovação de contrato pelo proprietário
+3. **Renovação** ✅: nos 90 dias antes do fim do contrato, o proprietário escolhe renovar pelo valor atual, propor novo valor ou não renovar (com comentário). A imobiliária vê as respostas e registra a renovação (novo contrato, +12 meses por padrão) ou a não renovação (imóvel entra em devolução)
 4. Notificações por e-mail e relatório de repasse
 
 O protótipo visual está em `prototipo/index.html`.
@@ -17,7 +17,7 @@ O protótipo visual está em `prototipo/index.html`.
 
 ### 1. Criar o projeto no Supabase
 1. Crie um projeto em https://supabase.com (plano gratuito serve).
-2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…`, `0002_…`). O `0002` cria o bucket privado `despesas` para os PDFs.
+2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…`, `0002_…`, `0003_…`). O `0002` cria o bucket privado `despesas` para os PDFs.
 3. (Opcional) Rode `supabase/seed.sql` para ter dados de exemplo.
 4. Em **Authentication → URL Configuration**, coloque a URL do app em *Site URL* e adicione `https://SEU-APP/auth/confirm` em *Redirect URLs* (e `http://localhost:3000/auth/confirm` para testar local).
 5. Em **Authentication → Email Templates**, nos modelos *Invite user* e *Reset password*, troque o link por:
@@ -55,12 +55,12 @@ No cadastro do proprietário, preencha o e-mail e clique em **Enviar convite**. 
 ```bash
 npm test
 ```
-Cobre o cálculo do rateio (`src/lib/rateio.ts`).
+Cobre o cálculo do rateio (`src/lib/rateio.ts`) e as datas da renovação.
 
 ## Permissões
 Todas as tabelas usam Row Level Security:
 - **admin** (imobiliária): lê e edita tudo.
-- **proprietario**: só lê os próprios imóveis, contratos, condomínios onde tem unidade e despesas enviadas a ele. Responde às despesas apenas pelas funções `responder_despesa` e `informar_reembolso`, que conferem o dono e bloqueiam alterações depois que a imobiliária confirma o reembolso.
+- **proprietario**: só lê os próprios imóveis, contratos, condomínios onde tem unidade e despesas enviadas a ele. Responde às despesas apenas pelas funções `responder_despesa` e `informar_reembolso`, e à renovação por `responder_renovacao`. Essas funções conferem o dono e bloqueiam alterações depois que a imobiliária confirma o reembolso ou registra a renovação.
 - PDFs ficam num bucket privado e abrem por link temporário, só para quem pode ver a despesa.
 
 A chave `SUPABASE_SERVICE_ROLE_KEY` fica só no servidor e é usada só para enviar convites e para guardar e abrir os PDFs, sempre depois de checar a permissão de quem pediu.

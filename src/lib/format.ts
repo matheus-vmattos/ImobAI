@@ -20,3 +20,9 @@ export const diasAte = (iso: string) => {
 };
 
 export const RENOVACAO_DIAS = 90;
+
+/** Soma meses e dias a uma data ISO ("2026-12-15", 12, -1 → "2027-12-14"). Sem fuso: trabalha em UTC. */
+export const somarData = (iso: string, meses: number, dias = 0) => {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + meses, d + dias)).toISOString().slice(0, 10);
+};

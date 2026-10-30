@@ -86,3 +86,20 @@ export const situacao = (i: { decisao: Decisao | null; reembolso: StatusReembols
     : i.decisao !== "reembolso" ? i.decisao
     : i.reembolso === "confirmado" ? "reembolso-confirmado"
     : i.reembolso === "informado" ? "reembolso-informado" : "reembolso";
+
+/* ---------- fase 3: renovação ---------- */
+export type DecisaoRenovacao = "atual" | "novo_valor" | "nao_renovar";
+export const RENOVACAO_LABEL: Record<DecisaoRenovacao, string> = {
+  atual: "Renovar pelo valor atual",
+  novo_valor: "Novo valor proposto",
+  nao_renovar: "Não renovar",
+};
+export type Renovacao = {
+  contrato_id: string;
+  proprietario_id: string;
+  decisao: DecisaoRenovacao;
+  valor_proposto: number | null;
+  comentario: string | null;
+  respondido_em: string;
+  concluida_em: string | null;
+};

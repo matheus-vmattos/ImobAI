@@ -6,14 +6,17 @@ import { carregarDespesas } from "./despesas";
 import { Historico } from "./Historico";
 import { ListaImoveis } from "./ListaImoveis";
 import { Pendencias } from "./Pendencias";
+import { Renovacoes, type ContratoRenovacao } from "./Renovacoes";
+import type { Renovacao } from "@/lib/types";
 
 export default async function Portal({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
   const { supabase, user } = await getSessao();
-  const [{ imoveis, condominios }, { pendentes, historico }, { data: p }] = await Promise.all([
+  const [{ imoveis, condominios }, { pendentes, historico }, { data: p }, { data: rens }] = await Promise.all([
     carregarPortal(supabase, user.id),
     carregarDespesas(supabase),
     supabase.from("proprietarios").select("nome").eq("user_id", user.id).maybeSingle(),
+    supabase.from("renovacoes").select("*"),
   ]);
   const primeiroNome = (p?.nome ?? "").split(" ")[0];
   const cnt = (s: string) => imoveis.filter((i) => i.status === s).length;
@@ -21,6 +24,12 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
   const bruto = locados.reduce((a, i) => a + (i.aluguel ?? 0) * i.percentual / 100, 0);
   const vencendo = locados.filter((i) => i.fim && diasAte(i.fim) <= RENOVACAO_DIAS).length;
   const semResposta = pendentes.filter((d) => d.situacao === "aguardando");
+  const respostas = (rens ?? []) as Renovacao[];
+  const renovacoes: ContratoRenovacao[] = locados
+    .filter((i) => i.contratoId && i.fim && diasAte(i.fim) <= RENOVACAO_DIAS)
+    .sort((a, b) => a.fim!.localeCompare(b.fim!))
+    .map((i) => ({ contratoId: i.contratoId!, imovel: [condominios.find((c) => c.id && c.id === i.condominioId)?.nome, i.nome].filter(Boolean).join(" · "),
+      aluguel: i.aluguel ?? 0, fim: i.fim!, inquilino: i.inquilino, resposta: respostas.find((r) => r.contrato_id === i.contratoId) ?? null }));
 
   if (!imoveis.length) {
     return (
@@ -61,6 +70,13 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
         <div className="sec-h"><h2>Para aprovar</h2><span className="count">{pendentes.length ? `${pendentes.length} em aberto` : "tudo em dia"}</span><span className="rule" /></div>
         {pendentes.length ? <Pendencias pendentes={pendentes} condominios={condominios} /> : <div className="empty">Nenhuma despesa aguardando você.</div>}
       </section>
+
+      {renovacoes.length > 0 && (
+        <section className="sec" id="renovacoes">
+          <div className="sec-h"><h2>Renovações</h2><span className="count">{renovacoes.filter((r) => !r.resposta).length} sem resposta</span><span className="rule" /></div>
+          <Renovacoes itens={renovacoes} />
+        </section>
+      )}
 
       <section className="sec">
         <div className="sec-h"><h2>Meus imóveis</h2><span className="count">{imoveis.length}</span><span className="rule" /></div>

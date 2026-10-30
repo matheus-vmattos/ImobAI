@@ -5,6 +5,8 @@ import { getSessao } from "@/lib/auth";
 import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
 import type { Contrato, Imovel } from "@/lib/types";
 import { carregarDespesas } from "../../despesas";
+import { Renovacoes } from "../../Renovacoes";
+import type { Renovacao } from "@/lib/types";
 
 export default async function ImovelPortal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,6 +22,7 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
   const c = im.contratos.find((x) => x.ativo);
   const pct = Number(im.imovel_proprietarios.find((v) => v.proprietarios?.user_id === user.id)?.percentual ?? 100);
   const dias = c ? diasAte(c.fim) : null;
+  const { data: resposta } = c ? await supabase.from("renovacoes").select("*").eq("contrato_id", c.id).limit(1).maybeSingle<Renovacao>() : { data: null };
 
   // estimativa do próximo repasse: aluguel, taxa, seguro e despesas marcadas para desconto
   const linhas: [string, number][] = [];
@@ -56,7 +59,10 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
               <p className="small muted" style={{ margin: 0 }}>Inquilino: {c.inquilino} · início {data(c.inicio)}
                 {c.aviso_saida_em && <> · aviso de saída em {data(c.aviso_saida_em)}</>}</p>
               {im.status === "locado" && dias! <= RENOVACAO_DIAS && (
-                <div className="alert" style={{ color: "var(--warn)" }}>O contrato vence em {dias} dias. Em breve você poderá informar aqui se quer renovar e por qual valor.</div>
+                <div id="renovacoes" style={{ display: "grid", gap: 6 }}>
+                  <span className="label">Renovação · decisão necessária</span>
+                  <Renovacoes voltar={`/portal/imoveis/${im.id}`} itens={[{ contratoId: c.id, imovel: im.identificacao, aluguel: Number(c.aluguel), fim: c.fim, inquilino: c.inquilino, resposta: resposta ?? null }]} />
+                </div>
               )}
             </>
           ) : im.status === "indisponivel" ? (
