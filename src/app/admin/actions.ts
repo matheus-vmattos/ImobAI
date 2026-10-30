@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import * as avisos from "@/lib/avisos";
+import { BRL, data } from "@/lib/format";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { exigirAdmin } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -235,4 +238,62 @@ export async function encerrarContrato(form: FormData) {
   }
   revalidatePath("/admin", "layout");
   voltar(back, { ok: "Contrato encerrado. Imóvel marcado como vazio." });
+}
+
+/* ---------- renovação (fase 3) ---------- */
+
+/** Encerra o contrato atual e abre o novo com as datas e o valor combinados. */
+export async function registrarRenovacao(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const imovel_id = String(form.get("imovel_id"));
+  const id = String(form.get("contrato_id"));
+  const back = `/admin/imoveis/${imovel_id}`;
+  try {
+    const aluguel = numero(form, "aluguel");
+    if (aluguel == null || aluguel <= 0) throw new Error('Preencha o campo "Novo aluguel".');
+    const inicio = obrigatorio(form, "inicio", "Novo início");
+    const fim = obrigatorio(form, "fim", "Novo fim");
+    if (fim < inicio) throw new Error("O fim do contrato é anterior ao início.");
+    const { data: atual, error } = await supabase.from("contratos").select("*").eq("id", id).eq("ativo", true).single();
+    checar(error);
+    checar((await supabase.from("contratos").update({ ativo: false }).eq("id", id)).error);
+    const novo = await supabase.from("contratos").insert({
+      imovel_id, inquilino: atual.inquilino, inquilino_contato: atual.inquilino_contato, aluguel, inicio, fim,
+      dia_vencimento: atual.dia_vencimento, ativo: true, observacoes: texto(form, "observacoes") ?? atual.observacoes,
+    });
+    if (novo.error) {
+      await supabase.from("contratos").update({ ativo: true }).eq("id", id);
+      checar(novo.error);
+    }
+    checar((await supabase.from("renovacoes").update({ concluida_em: new Date().toISOString() }).eq("contrato_id", id)).error);
+    checar((await supabase.from("imoveis").update({ status: "locado" }).eq("id", imovel_id)).error);
+  } catch (e) {
+    voltar(back, { erro: mensagem(e) });
+  }
+  const aluguel = numero(form, "aluguel")!, fim = String(form.get("fim"));
+  after(() => avisos.renovacaoRegistrada(imovel_id, `contrato renovado até ${data(fim)}, aluguel de ${BRL(aluguel)}.`));
+  revalidatePath("/admin", "layout");
+  revalidatePath("/portal", "layout");
+  voltar(back, { ok: "Contrato renovado." });
+}
+
+/** Proprietário não quer renovar: o imóvel entra em devolução com entrega das chaves no fim do contrato. */
+export async function registrarNaoRenovacao(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const imovel_id = String(form.get("imovel_id"));
+  const id = String(form.get("contrato_id"));
+  const back = `/admin/imoveis/${imovel_id}`;
+  try {
+    const { data: atual, error } = await supabase.from("contratos").select("fim, entrega_chaves_prevista").eq("id", id).eq("ativo", true).single();
+    checar(error);
+    checar((await supabase.from("contratos").update({ entrega_chaves_prevista: atual!.entrega_chaves_prevista ?? atual!.fim }).eq("id", id)).error);
+    checar((await supabase.from("renovacoes").update({ concluida_em: new Date().toISOString() }).eq("contrato_id", id)).error);
+    checar((await supabase.from("imoveis").update({ status: "devolucao" }).eq("id", imovel_id)).error);
+  } catch (e) {
+    voltar(back, { erro: mensagem(e) });
+  }
+  after(() => avisos.renovacaoRegistrada(imovel_id, "registramos que o contrato não será renovado. O imóvel entra em devolução e avisaremos o inquilino."));
+  revalidatePath("/admin", "layout");
+  revalidatePath("/portal", "layout");
+  voltar(back, { ok: "Não renovação registrada. Imóvel em devolução." });
 }

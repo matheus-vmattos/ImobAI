@@ -1,10 +1,21 @@
 import type { Metadata } from "next";
-import { Barlow, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const body = Barlow({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" });
-const display = Barlow_Condensed({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-display" });
-const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
+// fontes no repositório (OFL, ver fonts/LICENSE.txt): o build não depende do Google Fonts
+const body = localFont({ variable: "--font-body", src: [
+  { path: "./fonts/barlow-latin-400-normal.woff2", weight: "400" },
+  { path: "./fonts/barlow-latin-500-normal.woff2", weight: "500" },
+  { path: "./fonts/barlow-latin-600-normal.woff2", weight: "600" },
+] });
+const display = localFont({ variable: "--font-display", src: [
+  { path: "./fonts/barlow-condensed-latin-500-normal.woff2", weight: "500" },
+  { path: "./fonts/barlow-condensed-latin-600-normal.woff2", weight: "600" },
+] });
+const mono = localFont({ variable: "--font-mono", src: [
+  { path: "./fonts/jetbrains-mono-latin-400-normal.woff2", weight: "400" },
+  { path: "./fonts/jetbrains-mono-latin-500-normal.woff2", weight: "500" },
+] });
 
 export const metadata: Metadata = {
   title: "ImobAI",

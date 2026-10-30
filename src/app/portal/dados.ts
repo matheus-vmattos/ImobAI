@@ -6,6 +6,7 @@ export type ImovelPortal = {
   nome: string;
   condominioId: string | null;
   status: StatusImovel;
+  contratoId: string | null;
   percentual: number;
   aluguel: number | null;      // do contrato ativo, ou o pedido se vazio
   fim: string | null;
@@ -31,6 +32,7 @@ export async function carregarPortal(supabase: SupabaseClient, userId: string) {
       nome: i.condominio_id ? i.identificacao : [i.endereco, i.identificacao].filter(Boolean).join(" · "),
       condominioId: i.condominio_id,
       status: i.status,
+      contratoId: c?.id ?? null,
       percentual: Number(meu?.percentual ?? 100),
       aluguel: c ? Number(c.aluguel) : i.aluguel_pedido != null ? Number(i.aluguel_pedido) : null,
       fim: c?.fim ?? null,
