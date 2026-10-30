@@ -10,6 +10,9 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const next = searchParams.get("next")?.startsWith("/") ? searchParams.get("next")! : "/definir-senha";
 
+  // links padrão do Supabase trazem a sessão no fragmento (#access_token): só o navegador lê
+  if (!token_hash && !code) return NextResponse.redirect(`${origin}/auth/sessao?next=${encodeURIComponent(next)}`);
+
   const supabase = await createClient();
   const { error } = token_hash && type
     ? await supabase.auth.verifyOtp({ type, token_hash })
