@@ -73,7 +73,7 @@ main .wrap{padding-block:36px 80px;display:grid;gap:52px}
 .pill{display:inline-flex;align-items:center;gap:7px;padding:4px 9px;border-radius:999px;font:500 10.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;border:1px solid currentColor;white-space:nowrap}
 .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .pill.locado{color:var(--ok)} .pill.vazio{color:var(--warn)} .pill.indisp{color:var(--dim)} .pill.devolucao{color:var(--dev)}
-.pill.desc{color:var(--accent)} .pill.reemb{color:var(--warn)} .pill.reemb-ok{color:var(--ok)} .pill.proprio{color:var(--fg)} .pill.aguard{color:var(--muted)}
+.pill.desc{color:var(--accent)} .pill.reemb{color:var(--warn)} .pill.reemb-ok{color:var(--ok)} .pill.reemb-inf{color:var(--dev)} .pill.proprio{color:var(--fg)} .pill.aguard{color:var(--muted)}
 
 /* pendências agrupadas */
 .pg{border:1px solid var(--line);border-radius:6px;background:var(--panel);overflow:hidden}
@@ -332,7 +332,7 @@ tbody.click tr:hover td{background:rgba(98,214,245,.035)}
     </section>
 
     <section class="sec">
-      <div class="sec-h"><h2>Respostas recentes</h2><span class="rule"></span></div>
+      <div class="sec-h"><h2>Respostas recentes</h2><span class="count" id="c-resp" style="color:var(--dev)"></span><span class="rule"></span></div>
       <div class="box tbl-wrap"><table>
         <thead><tr><th>Despesa</th><th>Onde</th><th>Proprietário</th><th class="r">Valor</th><th>Status</th><th>Comentário</th></tr></thead>
         <tbody id="resp"></tbody>
@@ -431,9 +431,10 @@ const hist = [
   ['20/09','Seguro incêndio anual','Av. Nilópolis, 455 · Loja','Imóvel inteiro',648.00,'desc'],
   ['11/09','Pintura da fachada (extra)','Ed. Atlântico','4 × 2/48',2960.00,'reemb-ok']
 ];
-const LBL = {desc:'Descontar no repasse',reemb:'Reembolso · pendente','reemb-ok':'Reembolso · concluído',proprio:'Eu mesmo pago',aguard:'Aguardando'};
+const LBL = {desc:'Descontar no repasse',reemb:'Reembolso · pendente','reemb-inf':'Reembolso · aguardando confirmação','reemb-ok':'Reembolso · confirmado',proprio:'Eu mesmo pago',aguard:'Aguardando'};
 const pillK = k => `<span class="pill ${k}">${LBL[k]}</span>`;
-const keyA = a => a.s==='reemb'&&a.done ? 'reemb-ok' : a.s;
+// reembolso: r indefinido = pendente, 'inf' = proprietário informou, 'ok' = imobiliária confirmou o recebimento
+const keyA = a => a.s!=='reemb' ? a.s : a.r==='ok' ? 'reemb-ok' : a.r==='inf' ? 'reemb-inf' : 'reemb';
 const pillA = a => pillK(keyA(a));
 
 let fStatus='all', fQuery='', listMode='grp';
@@ -485,9 +486,14 @@ function pItem(p){
   const head = `<div><div class="pi-t">${p.title}</div>
       <div class="pi-m"><span>${n>1?`${n} unidades suas`:esc(imoveis[p.units[0]].nome)}</span><span>Lançada ${p.date}</span>${a?'':`<span style="color:var(--warn)">Responder até ${p.due}</span>`}<button class="link" data-pdf="${p.id}">${pdfIcon}PDF</button></div></div>
     <div class="pi-v"><span class="v num">${BRL(v)}</span><small>${n>1?`${n} × ${BRL(p.per)} · `:''}${p.regra}${p.taxa?' + 10% adm.':''}</small></div>`;
-  if(a) return `<div class="pi ${a.s==='reemb'&&!a.done?'':'done'}">${head}<div class="pi-a">${pillA(a)}
-    ${a.s==='reemb'?`<div class="renew-opts" data-rd="${p.id}"><button aria-pressed="${!a.done}" data-rdone="0">Não concluído</button><button aria-pressed="${!!a.done}" data-rdone="1">Concluído</button></div>`:''}
-    ${a.c?`<span class="note">“${esc(a.c)}”</span>`:''}<button class="btn ghost sm" data-undo="${p.id}" style="margin-left:auto">Alterar</button></div></div>`;
+  if(a){
+    const k=keyA(a), open=k==='reemb'||k==='reemb-inf';
+    return `<div class="pi ${open?'':'done'}">${head}<div class="pi-a">${pillA(a)}
+    ${open?`<div class="renew-opts" data-rd="${p.id}"><button aria-pressed="${k==='reemb'}" data-rdone="0">Não concluído</button><button aria-pressed="${k==='reemb-inf'}" data-rdone="1">Concluído</button></div>`:''}
+    ${k==='reemb-inf'?'<span class="note">A imobiliária vai confirmar o recebimento.</span>':''}
+    ${k==='reemb-ok'?'<span class="note ok">Recebimento confirmado pela imobiliária em 30/10.</span>':''}
+    ${a.c?`<span class="note">“${esc(a.c)}”</span>`:''}${k==='reemb-ok'?'':`<button class="btn ghost sm" data-undo="${p.id}" style="margin-left:auto">Alterar</button>`}</div></div>`;
+  }
   return `<div class="pi">${head}
     ${n>1?`<div class="breakdown">${names.map(x=>`<span class="chip">${x}</span>`).join('')}</div>`:''}
     <div class="pi-a">
@@ -611,7 +617,8 @@ document.addEventListener('click',e=>{
   if(!t){ const tr=e.target.closest('tr[data-im]'); if(tr) openImovel(+tr.dataset.im); return; }
   if(t.id==='dr-x') return closeDrawer();
   if(t.dataset.ans){ const id=+t.dataset.ans; answers[id]={s:t.dataset.s,c:($('#c-'+id)?.value||'').trim()}; renderOwner(); renderResp(); toast('Resposta enviada à imobiliária'); }
-  else if(t.dataset.rdone){ const id=+t.closest('[data-rd]').dataset.rd; answers[id].done=t.dataset.rdone==='1'; renderOwner(); renderResp(); toast(answers[id].done?'Reembolso marcado como concluído':'Reembolso marcado como pendente'); }
+  else if(t.dataset.rdone){ const id=+t.closest('[data-rd]').dataset.rd; answers[id].r=t.dataset.rdone==='1'?'inf':undefined; renderOwner(); renderResp(); toast(answers[id].r?'Reembolso informado. Aguardando confirmação da imobiliária':'Reembolso marcado como pendente'); }
+  else if(t.dataset.conf){ const c=t.dataset.conf; if(answers[c]) answers[c].r='ok'; else staticConf[c]=true; renderOwner(); renderResp(); toast('Recebimento confirmado. O proprietário já vê como concluído'); }
   else if(t.dataset.bulk){ pend.filter(p=>p.condo===t.dataset.bulk&&!answers[p.id]).forEach(p=>answers[p.id]={s:'desc',c:''}); renderOwner(); renderResp(); toast('Todas marcadas para desconto no repasse'); }
   else if(t.dataset.undo){ delete answers[+t.dataset.undo]; renderOwner(); renderResp(); }
   else if(t.dataset.cmt){ const w=$('#cw-'+t.dataset.cmt); w.hidden=!w.hidden; if(!w.hidden) w.querySelector('textarea').focus(); }
@@ -731,15 +738,20 @@ $('#a-send').onclick=()=>{ const n=new Set(units.filter(u=>u.on&&u.cotas>0).map(
 $('#a-send2').onclick=()=>toast('Enviado ao proprietário');
 $('#a-save').onclick=$('#a-save2').onclick=()=>toast('Rascunho salvo');
 
+const staticConf = {};
 function renderResp(){
   const rows=[
+    ['Conta de água','Manoel de Souza 48 · 402','Lia Torres',87.40,staticConf.s1?'reemb-ok':'reemb-inf','PIX enviado hoje às 9h','s1'],
     ['Conta de água','Manoel de Souza 48 · 101','Ana Ribeiro',87.40,'desc',''],
     ['Conta de água','Manoel de Souza 48 · 202','Marta Lins',87.40,'reemb-ok','Pago na sexta via PIX'],
     ['Conta de água','Manoel de Souza 48 · 301','Paulo Viana',87.40,'proprio','Pago direto na concessionária'],
     ['Poda de árvores','Residencial Jardins · 09','Ana Ribeiro',120,'aguard',''],
   ];
-  pend.forEach(p=>{ const a=answers[p.id]; rows.push([p.title,condoById[p.condo].nome+(p.units.length>1?` · ${p.units.length} un.`:''),'Carlos Menezes',pendVal(p),a?keyA(a):'aguard',a?a.c:'']); });
-  $('#resp').innerHTML = rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="r num">${BRL(r[3])}</td><td>${pillK(r[4])}</td><td class="muted">${esc(r[5]||'—')}</td></tr>`).join('');
+  pend.forEach(p=>{ const a=answers[p.id]; rows.push([p.title,condoById[p.condo].nome+(p.units.length>1?` · ${p.units.length} un.`:''),'Carlos Menezes',pendVal(p),a?keyA(a):'aguard',a?a.c:'',p.id]); });
+  rows.sort((x,y)=>(y[4]==='reemb-inf')-(x[4]==='reemb-inf'));
+  const nConf = rows.filter(r=>r[4]==='reemb-inf').length;
+  $('#c-resp').textContent = nConf ? `${nConf} recebimento${nConf>1?'s':''} para confirmar` : '';
+  $('#resp').innerHTML = rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="r num">${BRL(r[3])}</td><td>${pillK(r[4])}${r[4]==='reemb-inf'?` <button class="btn sm primary" data-conf="${r[6]}" style="margin-left:8px">Confirmar recebimento</button>`:''}</td><td class="muted">${esc(r[5]||'—')}</td></tr>`).join('');
 }
 
 /* ---------- alternar visão ---------- */
