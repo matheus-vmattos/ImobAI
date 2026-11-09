@@ -11,12 +11,14 @@ const cadastroDo = async (userId: string) => {
   return (data as unknown as { proprietarios: { id: string; nome: string } } | null)?.proprietarios ?? null;
 };
 
-/** Imobiliária enviou uma despesa: cada proprietário recebe a parte dele. */
-export async function despesaEnviada(despesaId: string) {
+/** Despesa que precisa de resposta (orçamento ou acima do limite): avisa só quem precisa decidir.
+ *  O resto chega junto, no e-mail da cobrança semanal. */
+export async function despesaEnviada(despesaId: string, proprietarios: string[]) {
   const { data: d } = await db().from("despesas").select("descricao, prazo, despesa_itens(proprietario_id, valor, taxa_adm)").eq("id", despesaId).single();
   if (!d) return;
   const total = new Map<string, number>();
   (d.despesa_itens as { proprietario_id: string; valor: number; taxa_adm: number }[])
+    .filter((i) => proprietarios.includes(i.proprietario_id))
     .forEach((i) => total.set(i.proprietario_id, (total.get(i.proprietario_id) ?? 0) + Number(i.valor) + Number(i.taxa_adm)));
   const emails = await emailsProprietarios([...total.keys()]);
   await notificar([...total].flatMap(([pid, v]): Mensagem[] => {

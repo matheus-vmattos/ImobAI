@@ -19,6 +19,10 @@ export type Proprietario = {
   pix: string | null;
   dados_bancarios: string | null;
   observacoes: string | null;
+  pagador_id: string | null;
+  forma_padrao: "cobranca" | "repasse";
+  aprova_ate: number;
+  desconta_vencidas: boolean;
 };
 
 export type Condominio = {
@@ -44,6 +48,7 @@ export type Imovel = {
   taxa_adm_pct: number;
   motivo_indisponivel: string | null;
   observacoes: string | null;
+  condominio_pago_por: "imobiliaria" | "proprietario";
 };
 
 export type Contrato = {
@@ -64,25 +69,36 @@ export type Contrato = {
 export type ImovelProprietario = { imovel_id: string; proprietario_id: string; percentual: number };
 
 /* ---------- fase 2: despesas ---------- */
-export type TipoDespesa = "fixa" | "variavel" | "iptu" | "seguro_incendio" | "manutencao" | "extra";
+export type TipoDespesa = "fixa" | "variavel" | "iptu" | "seguro_incendio" | "manutencao" | "extra" | "condominio" | "condominio_extra";
 export const TIPO_LABEL: Record<TipoDespesa, string> = {
   fixa: "Fixa", variavel: "Variável", iptu: "IPTU", seguro_incendio: "Seguro incêndio", manutencao: "Manutenção", extra: "Extra",
+  condominio: "Condomínio (ordinário)", condominio_extra: "Condomínio (extraordinário)",
 };
 export type Decisao = "desconto" | "reembolso" | "proprio";
 export type StatusReembolso = "pendente" | "informado" | "confirmado";
 
 /** Situação de um item para exibição (pílula). */
-export type Situacao = "aguardando" | "desconto" | "reembolso" | "reembolso-informado" | "reembolso-confirmado" | "proprio";
+export type Situacao = "aguardando" | "desconto" | "reembolso" | "reembolso-informado" | "reembolso-confirmado" | "proprio" | "cobrada" | "paga" | "inquilino" | "direto";
 export const SITUACAO_LABEL: Record<Situacao, string> = {
-  aguardando: "Aguardando",
+  aguardando: "Aguardando resposta",
   desconto: "Descontar no repasse",
-  reembolso: "Reembolso · pendente",
+  reembolso: "Entra na cobrança semanal",
+  cobrada: "Na cobrança semanal",
+  paga: "Paga",
+  inquilino: "Do inquilino",
+  direto: "Pago direto pelo proprietário",
   "reembolso-informado": "Reembolso · aguardando confirmação",
   "reembolso-confirmado": "Reembolso · confirmado",
   proprio: "Eu mesmo pago",
 };
-export const situacao = (i: { decisao: Decisao | null; reembolso: StatusReembolso | null }): Situacao =>
-  !i.decisao ? "aguardando"
+export const situacao = (i: {
+  decisao: Decisao | null; reembolso: StatusReembolso | null; responsavel?: string;
+  cobranca_id?: string | null; cobrancas?: { status: string } | null;
+}): Situacao =>
+  i.responsavel === "inquilino" ? "inquilino"
+    : i.responsavel === "direto" ? "direto"
+    : !i.decisao ? "aguardando"
+    : i.decisao === "reembolso" && i.cobranca_id ? (i.cobrancas?.status === "paga" ? "paga" : "cobrada")
     : i.decisao !== "reembolso" ? i.decisao
     : i.reembolso === "confirmado" ? "reembolso-confirmado"
     : i.reembolso === "informado" ? "reembolso-informado" : "reembolso";

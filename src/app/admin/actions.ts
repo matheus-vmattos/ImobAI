@@ -38,7 +38,12 @@ export async function salvarProprietario(form: FormData) {
       pix: texto(form, "pix"),
       dados_bancarios: texto(form, "dados_bancarios"),
       observacoes: texto(form, "observacoes"),
+      forma_padrao: form.get("forma_padrao") === "repasse" ? "repasse" : "cobranca",
+      aprova_ate: numero(form, "aprova_ate") ?? 300,
+      pagador_id: texto(form, "pagador_id"),
+      desconta_vencidas: form.get("desconta_vencidas") === "on",
     };
+    if (id && dados.pagador_id === id) throw new Error("O pagador precisa ser outro proprietário.");
     if (id) {
       checar((await supabase.from("proprietarios").update(dados).eq("id", id)).error);
     } else {
@@ -84,6 +89,33 @@ export async function convidarProprietario(form: FormData) {
     });
   }
   voltar(back, { ok: `Convite enviado para ${p!.email}.` });
+}
+
+/** Outro login (cônjuge, sócio, contador) com acesso ao mesmo cadastro. */
+export async function adicionarAcesso(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const proprietario_id = String(form.get("proprietario_id"));
+  const back = `/admin/proprietarios/${proprietario_id}`;
+  const email = texto(form, "email")?.toLowerCase();
+  if (!email) voltar(back, { erro: "Informe o e-mail." });
+  const { error } = await supabase.from("proprietario_acessos").insert({ proprietario_id, email, nome: texto(form, "nome") });
+  if (error) voltar(back, { erro: error.code === "23505" ? "Esse e-mail já tem acesso." : error.message });
+  // quem ainda não tem login recebe convite; quem já tem é vinculado na hora (gatilho no banco)
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const { error: e2 } = await createServiceClient().auth.admin.inviteUserByEmail(email!, {
+    data: { nome: texto(form, "nome") }, redirectTo: `${site}/auth/confirm?next=/definir-senha`,
+  });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: e2 && /registered|exists/i.test(e2.message) ? `${email} já tinha login e foi vinculado.` : `Convite enviado para ${email}.` });
+}
+
+export async function removerAcesso(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const back = `/admin/proprietarios/${String(form.get("proprietario_id"))}`;
+  const { error } = await supabase.from("proprietario_acessos").delete().eq("id", String(form.get("id")));
+  if (error) voltar(back, { erro: error.message });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: "Acesso removido." });
 }
 
 /* ---------- condomínios ---------- */
@@ -161,6 +193,7 @@ export async function salvarImovel(form: FormData) {
       taxa_adm_pct: numero(form, "taxa_adm_pct") ?? 10,
       motivo_indisponivel: status === "indisponivel" ? texto(form, "motivo_indisponivel") : null,
       observacoes: texto(form, "observacoes"),
+      condominio_pago_por: form.get("condominio_pago_por") === "proprietario" ? "proprietario" : "imobiliaria",
     };
     if (id) {
       checar((await supabase.from("imoveis").update(dados).eq("id", id)).error);

@@ -55,7 +55,7 @@ function Item({ d }: { d: DespesaPortal }) {
         <form action={responderDespesa} className="pi-a">
           <input type="hidden" name="despesa_id" value={d.id} />
           <button className="opt main" name="decisao" value="desconto">Descontar no repasse</button>
-          <button className="opt" name="decisao" value="reembolso" title="Você devolve o valor à imobiliária">Reembolso</button>
+          <button className="opt" name="decisao" value="reembolso" title="Entra na cobrança da semana; você paga tudo de uma vez">Cobrança semanal</button>
           <button className="opt" name="decisao" value="proprio" title="Você paga direto ao fornecedor">Eu mesmo pago</button>
           <details><summary>Adicionar comentário</summary>
             <textarea name="comentario" placeholder="Ex.: pedir 2º orçamento, enviar comprovante" aria-label="Comentário" /></details>

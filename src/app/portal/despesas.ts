@@ -5,6 +5,7 @@ type ItemRow = {
   id: string; imovel_id: string; cotas: number | null; percentual_dono: number; valor: number; taxa_adm: number;
   decisao: Decisao | null; comentario: string | null; reembolso: StatusReembolso | null; reembolso_confirmado_em: string | null;
   respondido_em: string | null; repassado_em: string | null;
+  responsavel: string; decidido_auto: boolean; cobranca_id: string | null; cobrancas: { status: string } | null;
   imoveis: { identificacao: string; endereco: string | null };
   despesas: {
     id: string; descricao: string; tipo: TipoDespesa; competencia: string | null; valor_total: number; regra: string; divisor: number | null;
@@ -24,12 +25,15 @@ export type DespesaPortal = {
 
 export async function carregarDespesas(supabase: SupabaseClient) {
   const { data } = await supabase.from("despesa_itens")
-    .select("*, imoveis(identificacao, endereco), despesas(id, descricao, tipo, competencia, valor_total, regra, divisor, prazo, enviada_em, pdf_path, cobra_taxa_adm, condominio_id, condominios(nome))");
+    .select("*, cobrancas(status), imoveis(identificacao, endereco), despesas(id, descricao, tipo, competencia, valor_total, regra, divisor, prazo, enviada_em, pdf_path, cobra_taxa_adm, condominio_id, condominios(nome))");
   const rows = (data ?? []) as unknown as ItemRow[];
   const porDespesa = new Map<string, ItemRow[]>();
   rows.forEach((r) => porDespesa.set(r.despesas.id, [...(porDespesa.get(r.despesas.id) ?? []), r]));
 
-  const despesas: DespesaPortal[] = [...porDespesa.values()].map((its) => {
+  const despesas: DespesaPortal[] = [...porDespesa.values()].map((todos) => {
+    // o que é do inquilino ou pago direto não soma na parte do proprietário
+    const doDono = todos.filter((i) => i.responsavel === "proprietario");
+    const its = doDono.length ? doDono : todos;
     const d = its[0].despesas;
     const valor = its.reduce((a, i) => a + Number(i.valor), 0);
     const taxa = its.reduce((a, i) => a + Number(i.taxa_adm), 0);
@@ -51,10 +55,10 @@ export async function carregarDespesas(supabase: SupabaseClient) {
     };
   }).sort((a, b) => (b.enviadaEm ?? "").localeCompare(a.enviadaEm ?? ""));
 
-  const emAberto = (d: DespesaPortal) => ["aguardando", "reembolso", "reembolso-informado"].includes(d.situacao);
+  const emAberto = (d: DespesaPortal) => d.situacao === "aguardando";
   /** itens de desconto ainda não repassados, por imóvel (para o extrato) */
   const descontosPorImovel = (imovelId: string) =>
-    rows.filter((r) => r.imovel_id === imovelId && r.decisao === "desconto" && !r.repassado_em)
+    rows.filter((r) => r.imovel_id === imovelId && r.decisao === "desconto" && r.responsavel === "proprietario" && !r.repassado_em)
       .map((r) => ({ descricao: r.despesas.descricao, valor: Number(r.valor) + Number(r.taxa_adm) }));
 
   return { despesas, pendentes: despesas.filter(emAberto), historico: despesas.filter((d) => !emAberto(d)), descontosPorImovel };

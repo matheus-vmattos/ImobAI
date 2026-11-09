@@ -10,6 +10,7 @@ import { numero, obrigatorio, texto } from "@/lib/form";
 import { calcularRateio, type Regra, type UnidadeRateio } from "@/lib/rateio";
 import { createServiceClient } from "@/lib/supabase/server";
 import { carregarCarteira } from "./dados";
+import { aplicarDecisoesAutomaticas, responsaveis } from "@/lib/decisoes";
 
 const voltar = (path: string, params: Record<string, string>): never => redirect(`${path}?${new URLSearchParams(params)}`);
 const BUCKET = "despesas";
@@ -72,9 +73,12 @@ export async function lancarDespesa(form: FormData) {
       if (error) throw new Error("Falha ao enviar o PDF: " + error.message);
     }
 
+    const tipo = String(form.get("tipo") ?? "variavel");
+    const resp = await responsaveis(supabase, tipo, r.itens.map((i) => i.imovelId));
     const { error: e1 } = await supabase.from("despesas").insert({
-      id, condominio_id, imovel_id,
-      tipo: String(form.get("tipo") ?? "variavel"),
+      id, condominio_id, imovel_id, tipo,
+      requer_aprovacao: form.get("requer_aprovacao") === "on",
+      unidades: unidades.map((u) => ({ imovelId: u.imovelId, quantidade: u.quantidade })),
       descricao: obrigatorio(form, "descricao", "Descrição"),
       competencia: texto(form, "competencia"),
       valor_total: total, regra, divisor, valor_fora: r.fora,
@@ -89,6 +93,7 @@ export async function lancarDespesa(form: FormData) {
     const { error: e2 } = await supabase.from("despesa_itens").insert(r.itens.map((i) => ({
       despesa_id: id, imovel_id: i.imovelId, proprietario_id: i.proprietarioId,
       cotas: i.quantidade, percentual_dono: i.percentualDono, valor: i.valor, taxa_adm: i.taxaAdm,
+      responsavel: resp.get(i.imovelId) ?? "proprietario",
     })));
     if (e2) {
       await supabase.from("despesas").delete().eq("id", id);
@@ -97,7 +102,10 @@ export async function lancarDespesa(form: FormData) {
   } catch (e) {
     voltar(back, { erro: e instanceof Error ? e.message : "Não foi possível lançar a despesa." });
   }
-  if (enviar) after(() => avisos.despesaEnviada(id!));
+  if (enviar) {
+    const precisam = await aplicarDecisoesAutomaticas(supabase, id!);
+    if (precisam.length) after(() => avisos.despesaEnviada(id!, precisam));
+  }
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(`/admin/despesas/${id}`, { ok: enviar ? "Despesa enviada aos proprietários." : "Rascunho salvo." });
@@ -108,7 +116,8 @@ export async function enviarDespesa(form: FormData) {
   const id = String(form.get("id"));
   const { error } = await supabase.from("despesas").update({ status: "enviada", enviada_em: new Date().toISOString() }).eq("id", id).eq("status", "rascunho");
   if (error) voltar(`/admin/despesas/${id}`, { erro: error.message });
-  after(() => avisos.despesaEnviada(id));
+  const precisam = await aplicarDecisoesAutomaticas(supabase, id);
+  if (precisam.length) after(() => avisos.despesaEnviada(id, precisam));
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(`/admin/despesas/${id}`, { ok: "Despesa enviada aos proprietários." });

@@ -16,7 +16,7 @@ export function Historico({ despesas }: { despesas: DespesaPortal[] }) {
           <td className="muted small">{d.regraTxt}</td>
           <td className="r num">{BRL(d.total)}</td>
           <td><span className={`pill ${d.situacao}`}>{SITUACAO_LABEL[d.situacao]}</span></td>
-          <td>{d.situacao !== "reembolso-confirmado" && (
+          <td>{["desconto", "reembolso", "proprio"].includes(d.situacao) && (
             <form action={responderDespesa}><input type="hidden" name="despesa_id" value={d.id} /><button className="btn ghost sm" name="decisao" value="">Alterar</button></form>
           )}</td>
         </tr>

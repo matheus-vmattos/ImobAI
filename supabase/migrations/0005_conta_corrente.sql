@@ -76,6 +76,18 @@ begin
 end $$;
 create trigger proprietario_acessos_vincular after insert on proprietario_acessos for each row execute function acesso_vincular();
 
+-- acesso extra removido: desfaz o vínculo do login com esse e-mail (exceto se for o e-mail principal)
+create function acesso_desvincular() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from proprietario_usuarios pu
+   using auth.users u
+   where pu.proprietario_id = old.proprietario_id and pu.user_id = u.id and lower(u.email) = lower(old.email)
+     and not exists (select 1 from proprietarios p where p.id = old.proprietario_id and lower(p.email) = lower(old.email));
+  return old;
+end $$;
+create trigger proprietario_acessos_desvincular after delete on proprietario_acessos for each row execute function acesso_desvincular();
+
 create or replace function meus_proprietarios() returns setof uuid
 language sql stable security definer set search_path = public as $$
   select proprietario_id from proprietario_usuarios where user_id = auth.uid();

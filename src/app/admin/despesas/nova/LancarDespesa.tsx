@@ -95,6 +95,8 @@ export function LancarDespesa({ condominios, imoveis }: { condominios: Condomini
         </div>
         <label className="tog"><input type="checkbox" name="cobra_taxa" checked={cobraTaxa} onChange={(e) => setCobraTaxa(e.target.checked)} />
           <span>Cobrar taxa de administração sobre esta despesa<small>Usa a taxa de cada imóvel (padrão 10%), somada à parte do proprietário.</small></span></label>
+        <label className="tog"><input type="checkbox" name="requer_aprovacao" />
+          <span>É um orçamento: o proprietário aprova antes<small>Sem isso, contas fixas e valores até o limite de cada proprietário entram direto na cobrança.</small></span></label>
         <div className="drop">
           <span>PDF da conta</span>
           <input type="file" name="pdf" accept="application/pdf" aria-label="PDF da conta" />
