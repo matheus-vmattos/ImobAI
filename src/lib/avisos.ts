@@ -6,6 +6,10 @@ import { RENOVACAO_LABEL, SITUACAO_LABEL, situacao, type DecisaoRenovacao } from
 /** Avisos por e-mail de cada evento. Chamados com after() depois que a ação já deu certo. */
 
 const db = () => createServiceClient();
+const cadastroDo = async (userId: string) => {
+  const { data } = await db().from("proprietario_usuarios").select("proprietarios(id, nome)").eq("user_id", userId).limit(1).maybeSingle();
+  return (data as unknown as { proprietarios: { id: string; nome: string } } | null)?.proprietarios ?? null;
+};
 
 /** Imobiliária enviou uma despesa: cada proprietário recebe a parte dele. */
 export async function despesaEnviada(despesaId: string) {
@@ -41,7 +45,7 @@ export async function reembolsoConfirmado(despesaId: string, proprietarioId: str
 
 /** Proprietário respondeu uma despesa ou informou reembolso: avisa a imobiliária. */
 export async function respostaDespesa(despesaIds: string[], userId: string) {
-  const { data: p } = await db().from("proprietarios").select("id, nome").eq("user_id", userId).maybeSingle();
+  const p = await cadastroDo(userId);
   if (!p) return;
   const { data: itens } = await db().from("despesa_itens").select("despesa_id, decisao, reembolso, comentario, despesas(descricao)")
     .in("despesa_id", despesaIds).eq("proprietario_id", p.id);
@@ -60,7 +64,7 @@ export async function respostaDespesa(despesaIds: string[], userId: string) {
 
 /** Proprietário respondeu a renovação: avisa a imobiliária. */
 export async function respostaRenovacao(contratoId: string, userId: string) {
-  const { data: p } = await db().from("proprietarios").select("id, nome").eq("user_id", userId).maybeSingle();
+  const p = await cadastroDo(userId);
   const { data: c } = await db().from("contratos").select("imovel_id, fim, imoveis(identificacao, condominios(nome))").eq("id", contratoId).single();
   if (!p || !c) return;
   const { data: r } = await db().from("renovacoes").select("decisao, valor_proposto, comentario").eq("contrato_id", contratoId).eq("proprietario_id", p.id).maybeSingle();

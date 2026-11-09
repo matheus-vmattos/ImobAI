@@ -11,11 +11,11 @@ import type { Renovacao } from "@/lib/types";
 
 export default async function Portal({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
-  const { supabase, user } = await getSessao();
+  const { supabase, proprietarioIds, cadastros } = await getSessao();
   const [{ imoveis, condominios }, { pendentes, historico }, { data: p }, { data: rens }] = await Promise.all([
-    carregarPortal(supabase, user.id),
+    carregarPortal(supabase, proprietarioIds),
     carregarDespesas(supabase),
-    supabase.from("proprietarios").select("nome").eq("user_id", user.id).maybeSingle(),
+    Promise.resolve({ data: cadastros[0] ?? null }),
     supabase.from("renovacoes").select("*"),
   ]);
   const primeiroNome = (p?.nome ?? "").split(" ")[0];

@@ -10,17 +10,17 @@ import type { Renovacao } from "@/lib/types";
 
 export default async function ImovelPortal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user } = await getSessao();
+  const { supabase, proprietarioIds } = await getSessao();
   const { data: i } = await supabase.from("imoveis")
-    .select("*, condominios(nome, endereco), contratos(*), imovel_proprietarios(percentual, proprietarios(user_id))")
+    .select("*, condominios(nome, endereco), contratos(*), imovel_proprietarios(percentual, proprietario_id)")
     .eq("id", id).maybeSingle();
   if (!i) notFound();
   const im = i as unknown as Imovel & {
     condominios: { nome: string; endereco: string | null } | null; contratos: Contrato[];
-    imovel_proprietarios: { percentual: number; proprietarios: { user_id: string | null } }[];
+    imovel_proprietarios: { percentual: number; proprietario_id: string }[];
   };
   const c = im.contratos.find((x) => x.ativo);
-  const pct = Number(im.imovel_proprietarios.find((v) => v.proprietarios?.user_id === user.id)?.percentual ?? 100);
+  const pct = im.imovel_proprietarios.filter((v) => proprietarioIds.includes(v.proprietario_id)).reduce((a, v) => a + Number(v.percentual), 0) || 100;
   const dias = c ? diasAte(c.fim) : null;
   const { data: resposta } = c ? await supabase.from("renovacoes").select("*").eq("contrato_id", c.id).limit(1).maybeSingle<Renovacao>() : { data: null };
 
