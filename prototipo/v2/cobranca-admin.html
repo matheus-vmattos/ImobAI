@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ImobAI · Despesa com orçamento · imobiliária (maquete v2)</title>
+<title>ImobAI · Conferir pagamento · imobiliária (maquete v2)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
 /* ImobAI v2 · maquete do redesign (referências: Linear, Mercury, Vercel) */
@@ -113,34 +113,23 @@ tbody tr:hover td { background: rgba(255,255,255,.02) }
 .chart svg { width: 100%; height: 170px; display: block }
 .who-c { display: flex; align-items: center; gap: 10px }
 
-.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start }
-/* etapas */
-.flow { display: grid; grid-template-columns: repeat(5, 1fr); padding: 18px 16px 16px }
-.fs { display: grid; gap: 8px; position: relative; padding-right: 10px }
-.fs .ln { display: flex; align-items: center; gap: 8px }
-.fs .ln::after { content: ""; flex: 1; height: 2px; border-radius: 2px; background: var(--border-2) }
-.fs:last-child .ln::after { visibility: hidden }
-.fs.done .ln::after { background: rgba(62,207,142,.5) }
-.fs .o { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--dim); display: grid; place-items: center; flex: none; font-size: 11px; color: var(--muted); font-weight: 600 }
-.fs.done .o { background: var(--ok); border-color: var(--ok); color: #04140c } .fs.done .o svg { width: 13px; height: 13px; stroke-width: 3 }
-.fs.now .o { border-color: var(--warn); color: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft) }
-.fs b { font-size: 13px; font-weight: 500 } .fs small { color: var(--muted); font-size: 12px; display: block; line-height: 1.4 }
-.fs.pend b { color: var(--muted) }
-td small { font-size: 12px }
-.grid2 td { white-space: normal } .grid2 td.num { white-space: nowrap }
-.fs .ln { height: 24px }
-.fs { align-content: start }
-.pay { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-2); font-size: 13px }
-.lnk { color: var(--accent); font-size: 13px; display: inline-flex; gap: 5px; align-items: center }
-.doc { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px }
-.doc:last-child { border-bottom: 0 }
-.doc .ic { width: 28px; height: 32px; border-radius: 5px; background: rgba(242,85,90,.15); color: var(--bad); display: grid; place-items: center; font-size: 9px; font-weight: 700; flex: none }
-.doc small { color: var(--muted); display: block; font-size: 11.5px }
-.log { padding: 6px 16px 14px; display: grid; gap: 12px }
-.ev { display: grid; grid-template-columns: 8px 1fr; gap: 10px; font-size: 12.5px } .ev .d { width: 7px; height: 7px; border-radius: 50%; margin-top: 6px }
-.ev b { font-weight: 500 } .ev small { color: var(--muted); display: block }
-.recv { padding: 4px 0 } .recv .r1 { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px }
-.recv .r1 span:nth-child(2) { flex: 1; min-width: 0 } .recv .r1 small { color: var(--muted); display: block; font-size: 11.5px }
+.cols3 { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 12px; align-items: start }
+.rc { height: 230px; border-radius: 8px; background: repeating-linear-gradient(0deg, #d9d6cf 0 11px, #cfccc4 11px 12px); position: relative; border: 1px solid var(--border-2) }
+.rc span { position: absolute; inset: 14px 16px; font: 600 11px/1.7 ui-monospace, Menlo, monospace; color: #3d3b37 }
+.rcs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px }
+.meta { display: grid; gap: 8px; padding: 0 16px 16px; font-size: 13px }
+.meta div { display: flex } .meta div span:first-child { color: var(--muted) } .meta div span:last-child { margin-left: auto }
+.msg { margin: 0 16px 16px; padding: 10px 12px; border-radius: 9px; background: var(--surface-2); font-size: 13px; color: var(--fg-2) }
+.chk { width: 16px; height: 16px; border-radius: 4px; background: var(--accent); display: grid; place-items: center; color: var(--accent-ink) } .chk svg { width: 11px; height: 11px; stroke-width: 3.2 }
+.sumb { display: grid; gap: 10px; padding: 14px 16px; border-top: 1px solid var(--border) }
+.sumb .ln { display: flex; font-size: 13.5px } .sumb .ln span:last-child { margin-left: auto }
+.inp { height: 36px; border-radius: 8px; border: 1px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--bg); display: inline-flex; align-items: center; padding: 0 12px; font-weight: 600; min-width: 150px; justify-content: flex-end }
+.opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: 9px; font-size: 13px }
+.opt .r { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--dim); flex: none; margin-top: 1px }
+.opt[aria-checked="true"] { border-color: var(--accent); background: rgba(95,208,238,.05) } .opt[aria-checked="true"] .r { border: 5px solid var(--accent) }
+.opt b { font-weight: 500; display: block } .opt small { color: var(--muted); font-size: 12px }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.foot { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 16px; border-top: 1px solid var(--border) }
 </style>
 </head>
 <body>
@@ -178,86 +167,71 @@ td small { font-size: 12px }
     <a class="nav-i"><svg class="i"><use href="#i-building"/></svg>Condomínios</a>
     <a class="nav-i"><svg class="i"><use href="#i-file"/></svg>Contratos<span class="n">3</span></a>
     <div class="grp">Financeiro</div>
-    <a class="nav-i" aria-current="page"><svg class="i"><use href="#i-receipt"/></svg>Despesas<span class="n">5</span></a>
+    <a class="nav-i"><svg class="i"><use href="#i-receipt"/></svg>Despesas<span class="n">5</span></a>
+    <a class="nav-i" aria-current="page"><svg class="i"><use href="#i-check"/></svg>Cobranças<span class="n">2</span></a>
     <a class="nav-i"><svg class="i"><use href="#i-wallet"/></svg>Repasses</a>
     <a class="nav-i"><svg class="i"><use href="#i-mail"/></svg>E-mails</a>
     <div class="me"><span class="av" style="background:#5fd0ee">MM</span><span><b>Matheus Mattos</b><small>Administrador</small></span><svg class="i dim" style="margin-left:auto"><use href="#i-settings"/></svg></div>
   </aside>
-
+<!--NAV:Cobranças-->
   <div class="main">
     <div class="topbar">
-      <div class="crumb">Despesas <svg class="i dim" style="width:14px;height:14px"><use href="#i-chev"/></svg><b>Manutenção do portão</b></div><span class="sp"></span>
-      <button class="btn ghost sm">Excluir</button><button class="btn sm">Editar</button>
+      <div class="crumb">Cobranças <svg class="i dim" style="width:14px;height:14px"><use href="#i-chev"/></svg><b>Eduardo Castro · 03 a 09/11</b></div><span class="sp"></span>
+      <button class="btn ghost sm">Recusar comprovante</button>
     </div>
     <div class="page">
       <div class="head">
-        <div><h1>Manutenção do portão</h1><p>Cond. Manoel de Souza 48 · rateio por cotas (4 de 12 na carteira) · fornecedor Portões Silva Ltda.</p></div>
-        <span class="sp"></span><span class="tag warn"><span class="dot" style="background:currentColor"></span>Aguardando pagamentos</span>
+        <div><h1>Conferir pagamento</h1><p>Eduardo Castro enviou 2 comprovantes hoje às 14:18 · cobrança da semana 03 a 09/11</p></div>
+        <span class="sp"></span><span class="tag dev"><span class="dot" style="background:currentColor"></span>Comprovante recebido</span>
       </div>
 
-      <div class="kpis">
-        <div class="card kpi"><span class="l">Orçamento aprovado</span><span class="v num">R$ 500,00</span><span class="d muted">3 de 3 proprietários · 10/11</span></div>
-        <div class="card kpi"><span class="l">Valor final (nota)</span><span class="v num">R$ 480,00</span><span class="d"><span class="up">−4%</span><span class="muted">abaixo do orçado</span></span></div>
-        <div class="card kpi"><span class="l">Carteira</span><span class="v num">R$ 160,00</span><span class="d muted">fora da carteira R$ 320,00</span></div>
-        <div class="card kpi"><span class="l">Recebido</span><span class="v num">R$ 40,00 <span class="muted" style="font-size:15px;font-weight:500">/ 160</span></span><span class="d muted">1 confirmado · 1 a confirmar · 1 pendente</span></div>
-      </div>
-
-      <div class="card"><div class="flow">
-        <div class="fs done"><div class="ln"><span class="o"><svg class="i"><use href="#i-check"/></svg></span></div><b>Orçamento enviado</b><small>09/11 · PDF anexado</small></div>
-        <div class="fs done"><div class="ln"><span class="o"><svg class="i"><use href="#i-check"/></svg></span></div><b>Aprovado</b><small>3 de 3 · último em 10/11</small></div>
-        <div class="fs done"><div class="ln"><span class="o"><svg class="i"><use href="#i-check"/></svg></span></div><b>Serviço concluído</b><small>14/11 · NF R$ 480,00</small></div>
-        <div class="fs now"><div class="ln"><span class="o">4</span></div><b>Pagamentos</b><small>1 de 3 confirmados</small></div>
-        <div class="fs pend"><div class="ln"><span class="o">5</span></div><b>Concluída</b><small>quando todos pagarem</small></div>
-      </div></div>
-
-      <div class="grid2">
+      <div class="cols3">
         <div class="card">
-          <div class="card-h"><h3>Proprietários</h3><span class="tag neutral">3</span><span class="sp"></span><button class="btn ghost sm"><svg class="i"><use href="#i-mail"/></svg>Lembrar pendentes</button></div>
-          <table>
-            <thead><tr><th>Proprietário</th><th class="r">Parte</th><th>Orçamento</th><th>Pagamento</th><th>Situação</th><th></th></tr></thead>
-            <tbody>
-              <tr><td><span class="who-c"><span class="av" style="background:#f5a524">CM</span><span>Carlos Menezes<br><small class="muted">Apto 102, 302</small></span></span></td><td class="r num">R$ 80,00</td>
-                <td><span class="tag ok">Aprovado</span></td><td><span class="pay"><svg class="i"><use href="#i-wallet"/></svg>Pix</span><br><a class="lnk">comprovante.jpg <svg class="i" style="width:12px;height:12px"><use href="#i-arrow"/></svg></a></td>
-                <td><span class="tag dev"><span class="dot" style="background:currentColor"></span>A confirmar</span></td><td class="r"><button class="btn accent sm">Confirmar</button></td></tr>
-              <tr><td><span class="who-c"><span class="av" style="background:#a38bfa">AR</span><span>Ana Ribeiro<br><small class="muted">Apto 401</small></span></span></td><td class="r num">R$ 40,00</td>
-                <td><span class="tag ok">Aprovado</span></td><td><span class="pay"><svg class="i"><use href="#i-arrow"/></svg>Desconto no repasse</span><br><small class="muted">repasse de 10/12</small></td>
-                <td><span class="tag ok"><span class="dot" style="background:currentColor"></span>Confirmado</span></td><td></td></tr>
-              <tr><td><span class="who-c"><span class="av" style="background:#3ecf8e">BL</span><span>Beatriz Lemos<br><small class="muted">Apto 402</small></span></span></td><td class="r num">R$ 40,00</td>
-                <td><span class="tag ok">Aprovado</span><br><small class="muted">“Pedir garantia de 90 dias”</small></td><td><span class="muted">Não escolheu</span></td>
-                <td><span class="tag warn"><span class="dot" style="background:currentColor"></span>Pendente · 3 dias</span></td><td class="r"><button class="btn ghost sm">Lembrar</button></td></tr>
-            </tbody>
-          </table>
+          <div class="card-h"><h3>Comprovantes</h3><span class="tag neutral">2</span></div>
+          <div class="rcs">
+            <div class="rc"><span>itaú<br>DEPÓSITO DINHEIRO<br>DATA 05/11/26<br>FAVORECIDO:<br>MATTOS IMÓVEIS<br>VALOR:<br>R$ 1.950,00</span></div>
+            <div class="rc"><span>itaú<br>DEPÓSITO DINHEIRO<br>DATA 09/11/26<br>FAVORECIDO:<br>MATTOS IMÓVEIS<br>VALOR:<br>R$ 600,00</span></div>
+          </div>
+          <div class="meta">
+            <div><span>Forma</span><span>Depósito em dinheiro</span></div>
+            <div><span>Informado pelo proprietário</span><span class="num">R$ 2.550,00</span></div>
+          </div>
+          <div class="msg">“Boa tarde. Segue comprovante de depósito referente às contas da semana.”</div>
         </div>
 
-        <div style="display:grid;gap:12px">
-          <div class="card">
-            <div class="card-h"><h3>Documentos</h3><span class="sp"></span><button class="btn ghost sm"><svg class="i"><use href="#i-plus"/></svg></button></div>
-            <div class="doc"><span class="ic">PDF</span><span>Orçamento_portao.pdf<small>Orçamento · R$ 500,00 · 09/11</small></span></div>
-            <div class="doc"><span class="ic">PDF</span><span>NF 2231 · Portões Silva<small>Nota fiscal · R$ 480,00 · 14/11</small></span></div>
-            <div class="doc"><span class="ic" style="background:rgba(95,208,238,.15);color:var(--accent)">JPG</span><span>comprovante.jpg<small>Pix de Carlos Menezes · 14/11</small></span></div>
-          </div>
-          <div class="card">
-            <div class="card-h"><h3>Histórico</h3></div>
-            <div class="log">
-              <div class="ev"><span class="d" style="background:var(--dev)"></span><span><b>Carlos enviou comprovante Pix</b><small>14/11 · 18:42</small></span></div>
-              <div class="ev"><span class="d" style="background:var(--ok)"></span><span><b>Você lançou o valor final</b><small>14/11 · 10:05 · R$ 480,00 com NF</small></span></div>
-              <div class="ev"><span class="d" style="background:var(--ok)"></span><span><b>Beatriz aprovou o orçamento</b><small>10/11 · 21:13 · com comentário</small></span></div>
-              <div class="ev"><span class="d" style="background:var(--ok)"></span><span><b>Carlos e Ana aprovaram</b><small>09/11 · 16:30</small></span></div>
-              <div class="ev"><span class="d" style="background:var(--dim)"></span><span><b>Orçamento enviado</b><small>09/11 · 11:02 · por Matheus</small></span></div>
+        <div class="card">
+          <div class="card-h"><h3>Contas desta cobrança</h3><span class="tag neutral">4</span><span class="sp"></span><span class="muted" style="font-size:12.5px">todas marcadas como pagas</span></div>
+          <table>
+            <thead><tr><th style="width:36px"></th><th>Conta</th><th>Imóvel</th><th>Tipo</th><th class="r">Valor</th></tr></thead>
+            <tbody>
+              <tr><td><span class="chk"><svg class="i"><use href="#i-check"/></svg></span></td><td>Salário zelador · Cabral</td><td class="muted">Manoel de Souza 48</td><td><span class="tag neutral">Fixa mensal</span></td><td class="r num">R$ 1.941,30</td></tr>
+              <tr><td><span class="chk"><svg class="i"><use href="#i-check"/></svg></span></td><td>Remoção de lixo</td><td class="muted">Manoel de Souza 48</td><td><span class="tag neutral">Fixa mensal</span></td><td class="r num">R$ 100,00</td></tr>
+              <tr><td><span class="chk"><svg class="i"><use href="#i-check"/></svg></span></td><td>Portão · guias da parte superior</td><td class="muted">Manoel de Souza 48</td><td><span class="tag accent">Manutenção</span></td><td class="r num">R$ 180,00</td></tr>
+              <tr><td><span class="chk"><svg class="i"><use href="#i-check"/></svg></span></td><td>Portão de garagem</td><td class="muted">Rua 06, 120</td><td><span class="tag accent">Manutenção</span></td><td class="r num">R$ 330,00</td></tr>
+            </tbody>
+          </table>
+          <div class="sumb">
+            <div class="ln"><span class="muted">Total da cobrança</span><span class="num">R$ 2.551,30</span></div>
+            <div class="ln" style="align-items:center"><span>Valor que caiu na conta</span><span class="inp num">R$ 2.550,00</span></div>
+            <div class="ln"><span class="muted">Diferença</span><span class="num" style="color:var(--warn)">− R$ 1,30</span></div>
+            <div class="opts">
+              <div class="opt" aria-checked="true"><span class="r"></span><span><b>Abonar a diferença</b><small>Padrão. Fica registrado no extrato dos dois.</small></span></div>
+              <div class="opt"><span class="r"></span><span><b>Levar para a próxima cobrança</b><small>R$ 1,30 entra na semana de 10 a 16/11.</small></span></div>
             </div>
           </div>
+          <div class="foot"><button class="btn">Pagamento parcial…</button><button class="btn accent"><svg class="i"><use href="#i-check"/></svg>Confirmar pagamento · R$ 2.550,00</button></div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-h"><h3>A receber de proprietários</h3><span class="tag warn">R$ 1.240,00</span><span class="sp"></span><span class="muted" style="font-size:12.5px">todas as despesas</span></div>
+        <div class="card-h"><h3>Cobranças da semana · 03 a 09/11</h3><span class="sp"></span><span class="muted" style="font-size:12.5px">geradas segunda, 03/11 · enviadas por e-mail e no portal</span></div>
         <table>
-          <thead><tr><th>Proprietário</th><th>Despesa</th><th class="r">Valor</th><th>Situação</th><th>Desde</th><th></th></tr></thead>
+          <thead><tr><th>Proprietário</th><th class="r">Contas</th><th class="r">Total</th><th>Situação</th><th>Pago</th><th></th></tr></thead>
           <tbody>
-            <tr><td>Carlos Menezes</td><td>Manutenção do portão</td><td class="r num">R$ 80,00</td><td><span class="tag dev">Comprovante enviado</span></td><td class="muted">14/11</td><td class="r"><button class="btn accent sm">Confirmar</button></td></tr>
-            <tr><td>Beatriz Lemos</td><td>Manutenção do portão</td><td class="r num">R$ 40,00</td><td><span class="tag warn">Sem resposta</span></td><td class="muted">14/11</td><td class="r"><button class="btn ghost sm">Lembrar</button></td></tr>
-            <tr><td>Ana Ribeiro</td><td>Troca da bomba d'água</td><td class="r num">R$ 720,00</td><td><span class="tag neutral">Vai reembolsar</span></td><td class="muted">06/11</td><td class="r"><button class="btn ghost sm">Lembrar</button></td></tr>
-            <tr><td>Carlos Menezes</td><td>IPTU 2026 · Loja</td><td class="r num">R$ 400,00</td><td><span class="tag warn">Atrasado · 12 dias</span></td><td class="muted">28/10</td><td class="r"><button class="btn ghost sm">Lembrar</button></td></tr>
+            <tr><td><span class="who-c"><span class="av" style="background:#f5a524">EC</span>Eduardo Castro</span></td><td class="r">4</td><td class="r num">R$ 2.551,30</td><td><span class="tag dev"><span class="dot" style="background:currentColor"></span>Comprovante recebido</span></td><td class="muted">hoje</td><td class="r"><button class="btn accent sm">Conferir</button></td></tr>
+            <tr><td><span class="who-c"><span class="av" style="background:#a38bfa">AR</span>Ana Ribeiro</span></td><td class="r">2</td><td class="r num">R$ 514,81</td><td><span class="tag ok"><span class="dot" style="background:currentColor"></span>Paga</span></td><td class="muted">07/11 · Pix</td><td></td></tr>
+            <tr><td><span class="who-c"><span class="av" style="background:#3ecf8e">BL</span>Beatriz Lemos</span></td><td class="r">1</td><td class="r num">R$ 240,00</td><td><span class="tag neutral"><span class="dot" style="background:currentColor"></span>Desconto no repasse</span></td><td class="muted">repasse 10/12</td><td></td></tr>
+            <tr><td><span class="who-c"><span class="av" style="background:#5fd0ee">JP</span>João Prates</span></td><td class="r">3</td><td class="r num">R$ 890,00</td><td><span class="tag warn"><span class="dot" style="background:currentColor"></span>Aguardando · 6 dias</span></td><td class="muted">—</td><td class="r"><button class="btn ghost sm">Lembrar</button></td></tr>
           </tbody>
         </table>
       </div>

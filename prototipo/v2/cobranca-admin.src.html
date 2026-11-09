@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImobAI · Conferir pagamento · imobiliária (maquete v2)</title>
+<style>
+/*BASE*/
+/*SHELL*/
+.cols3 { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 12px; align-items: start }
+.rc { height: 230px; border-radius: 8px; background: repeating-linear-gradient(0deg, #d9d6cf 0 11px, #cfccc4 11px 12px); position: relative; border: 1px solid var(--border-2) }
+.rc span { position: absolute; inset: 14px 16px; font: 600 11px/1.7 ui-monospace, Menlo, monospace; color: #3d3b37 }
+.rcs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px }
+.meta { display: grid; gap: 8px; padding: 0 16px 16px; font-size: 13px }
+.meta div { display: flex } .meta div span:first-child { color: var(--muted) } .meta div span:last-child { margin-left: auto }
+.msg { margin: 0 16px 16px; padding: 10px 12px; border-radius: 9px; background: var(--surface-2); font-size: 13px; color: var(--fg-2) }
+.chk { width: 16px; height: 16px; border-radius: 4px; background: var(--accent); display: grid; place-items: center; color: var(--accent-ink) } .chk svg { width: 11px; height: 11px; stroke-width: 3.2 }
+.sumb { display: grid; gap: 10px; padding: 14px 16px; border-top: 1px solid var(--border) }
+.sumb .ln { display: flex; font-size: 13.5px } .sumb .ln span:last-child { margin-left: auto }
+.inp { height: 36px; border-radius: 8px; border: 1px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--bg); display: inline-flex; align-items: center; padding: 0 12px; font-weight: 600; min-width: 150px; justify-content: flex-end }
+.opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: 9px; font-size: 13px }
+.opt .r { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--dim); flex: none; margin-top: 1px }
+.opt[aria-checked="true"] { border-color: var(--accent); background: rgba(95,208,238,.05) } .opt[aria-checked="true"] .r { border: 5px solid var(--accent) }
+.opt b { font-weight: 500; display: block } .opt small { color: var(--muted); font-size: 12px }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.foot { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 16px; border-top: 1px solid var(--border) }
+</style>
+</head>
+<body>
+<!--ICONS-->
+<div class="app">
+<!--SIDE--><!--NAV:Cobranças-->
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb">Cobranças <svg class="i dim" style="width:14px;height:14px"><use href="#i-chev"/></svg><b>Eduardo Castro · 03 a 09/11</b></div><span class="sp"></span>
+      <button class="btn ghost sm">Recusar comprovante</button>
+    </div>
+    <div class="page">
+      <div class="head">
+        <div><h1>Conferir pagamento</h1><p>Eduardo Castro enviou 2 comprovantes hoje às 14:18 · cobrança da semana 03 a 09/11</p></div>
+        <span class="sp"></span><span class="tag dev"><span class="dot" style="background:currentColor"></span>Comprovante recebido</span>
+      </div>
+
+      <div class="cols3">
+        <div class="card">
+          <div class="card-h"><h3>Comprovantes</h3><span class="tag neutral">2</span></div>
+          <div class="rcs">
+            <div class="rc"><span>itaú<br>DEPÓSITO DINHEIRO<br>DATA 05/11/26<br>FAVORECIDO:<br>MATTOS IMÓVEIS<br>VALOR:<br>R$ 1.950,00</span></div>
+            <div class="rc"><span>itaú<br>DEPÓSITO DINHEIRO<br>DATA 09/11/26<br>FAVORECIDO:<br>MATTOS IMÓVEIS<br>VALOR:<br>R$ 600,00</span></div>
+          </div>
+          <div class="meta">
+            <div><span>Forma</span><span>Depósito em dinheiro</span></div>
+            <div><span>Informado pelo proprietário</span><span class="num">R$ 2.550,00</span></div>
+          </div>
+          <div class="msg">“Boa tarde. Segue comprovante de depósito referente às contas da semana.”</div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h3>Contas desta cobrança</h3><span class="tag neutral">4</span><span class="sp"></span><span class="muted" style="font-size:12.5px">todas marcadas como pagas</span></div>
+          <table>
+            <thead><tr><th style="width:36px"></th><th>Conta</th><th>Imóvel</th><th>Tipo</th><th class="r">Valor</th></tr></thead>
+            <tbody>
+              <tr><td><span class="chk"><svg class="i"><use href="#i-check"/></svg></span></td><td>Salário zelador · Cabral</td><td class="muted">Manoel de Souza 48</td><td><span class="tag neutral">Fixa mensal</span></td><td class="r num">R$ 1.941,30</td></tr>
+              <tr><td><span class="chk"><svg class="i"><use href="#i-check"/></svg></span></td><td>Remoção de lixo</td><td class="muted">Manoel de Souza 48</td><td><span class="tag neutral">Fixa mensal</span></td><td class="r num">R$ 100,00</td></tr>
+              <tr><td><span class="chk"><svg class="i"><use href="#i-check"/></svg></span></td><td>Portão · guias da parte superior</td><td class="muted">Manoel de Souza 48</td><td><span class="tag accent">Manutenção</span></td><td class="r num">R$ 180,00</td></tr>
+              <tr><td><span class="chk"><svg class="i"><use href="#i-check"/></svg></span></td><td>Portão de garagem</td><td class="muted">Rua 06, 120</td><td><span class="tag accent">Manutenção</span></td><td class="r num">R$ 330,00</td></tr>
+            </tbody>
+          </table>
+          <div class="sumb">
+            <div class="ln"><span class="muted">Total da cobrança</span><span class="num">R$ 2.551,30</span></div>
+            <div class="ln" style="align-items:center"><span>Valor que caiu na conta</span><span class="inp num">R$ 2.550,00</span></div>
+            <div class="ln"><span class="muted">Diferença</span><span class="num" style="color:var(--warn)">− R$ 1,30</span></div>
+            <div class="opts">
+              <div class="opt" aria-checked="true"><span class="r"></span><span><b>Abonar a diferença</b><small>Padrão. Fica registrado no extrato dos dois.</small></span></div>
+              <div class="opt"><span class="r"></span><span><b>Levar para a próxima cobrança</b><small>R$ 1,30 entra na semana de 10 a 16/11.</small></span></div>
+            </div>
+          </div>
+          <div class="foot"><button class="btn">Pagamento parcial…</button><button class="btn accent"><svg class="i"><use href="#i-check"/></svg>Confirmar pagamento · R$ 2.550,00</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Cobranças da semana · 03 a 09/11</h3><span class="sp"></span><span class="muted" style="font-size:12.5px">geradas segunda, 03/11 · enviadas por e-mail e no portal</span></div>
+        <table>
+          <thead><tr><th>Proprietário</th><th class="r">Contas</th><th class="r">Total</th><th>Situação</th><th>Pago</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><span class="who-c"><span class="av" style="background:#f5a524">EC</span>Eduardo Castro</span></td><td class="r">4</td><td class="r num">R$ 2.551,30</td><td><span class="tag dev"><span class="dot" style="background:currentColor"></span>Comprovante recebido</span></td><td class="muted">hoje</td><td class="r"><button class="btn accent sm">Conferir</button></td></tr>
+            <tr><td><span class="who-c"><span class="av" style="background:#a38bfa">AR</span>Ana Ribeiro</span></td><td class="r">2</td><td class="r num">R$ 514,81</td><td><span class="tag ok"><span class="dot" style="background:currentColor"></span>Paga</span></td><td class="muted">07/11 · Pix</td><td></td></tr>
+            <tr><td><span class="who-c"><span class="av" style="background:#3ecf8e">BL</span>Beatriz Lemos</span></td><td class="r">1</td><td class="r num">R$ 240,00</td><td><span class="tag neutral"><span class="dot" style="background:currentColor"></span>Desconto no repasse</span></td><td class="muted">repasse 10/12</td><td></td></tr>
+            <tr><td><span class="who-c"><span class="av" style="background:#5fd0ee">JP</span>João Prates</span></td><td class="r">3</td><td class="r num">R$ 890,00</td><td><span class="tag warn"><span class="dot" style="background:currentColor"></span>Aguardando · 6 dias</span></td><td class="muted">—</td><td class="r"><button class="btn ghost sm">Lembrar</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
