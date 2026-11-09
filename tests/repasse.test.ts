@@ -33,3 +33,14 @@ test("aluguel − taxa − seguro − despesas, com coproprietários", () => {
   assert.deepEqual(c.itens, ["i1"]);
   assert.equal(a.liquido, 3250 - 260 - 27);
 });
+
+test("aluguel não pago pelo inquilino não entra no repasse (nem a taxa)", () => {
+  const im = (recebido: number | null) => [{ id: "a", nome: "Apto 302", taxaPct: 10, seguro: null, donos: [{ proprietarioId: "c", percentual: 100 }], contratos: [{ ...contrato("1", 2350, "2024-12-16", "2026-12-15"), recebido }] }];
+  const [naoPago] = calcularRepasses("2026-11", im(null), []);
+  assert.equal(naoPago.aluguel, 0);
+  assert.equal(naoPago.taxa, 0);
+  assert.equal(naoPago.linhas[0].tipo, "pendente");
+  const [parcial] = calcularRepasses("2026-11", im(2000), []);
+  assert.equal(parcial.aluguel, 2000);
+  assert.equal(parcial.taxa, 200);
+});

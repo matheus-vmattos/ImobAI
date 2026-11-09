@@ -1,6 +1,7 @@
 /** Cálculo do repasse mensal ao proprietário. Sem dependências: usado na prévia, no fechamento e nos testes. */
 
-export type ContratoRepasse = { id: string; aluguel: number; inicio: string; fim: string; inquilino: string };
+/** recebido: quanto o inquilino pagou no mês (null = ainda não pagou; undefined = não controlado, usa o aluguel do contrato) */
+export type ContratoRepasse = { id: string; aluguel: number; inicio: string; fim: string; inquilino: string; recebido?: number | null };
 export type ImovelRepasse = {
   id: string;
   nome: string;
@@ -12,7 +13,7 @@ export type ImovelRepasse = {
 /** Item de despesa que o proprietário mandou descontar e ainda não entrou em repasse. */
 export type DescontoRepasse = { itemId: string; proprietarioId: string; imovelId: string; descricao: string; valor: number; taxaAdm: number };
 
-export type LinhaRepasse = { imovelId: string; imovel: string; tipo: "aluguel" | "taxa" | "seguro" | "despesa"; descricao: string; valor: number };
+export type LinhaRepasse = { imovelId: string; imovel: string; tipo: "aluguel" | "taxa" | "seguro" | "despesa" | "pendente" | "cobranca"; descricao: string; valor: number };
 export type RepasseCalculado = {
   proprietarioId: string;
   linhas: LinhaRepasse[];
@@ -50,8 +51,11 @@ export function calcularRepasses(competencia: string, imoveis: ImovelRepasse[], 
     for (const d of im.donos) {
       const r = de(d.proprietarioId);
       const parte = d.percentual < 100 ? ` (sua parte, ${d.percentual}%)` : "";
-      if (c) {
-        const aluguel = centavos((Number(c.aluguel) * d.percentual) / 100);
+      if (c && c.recebido === null) {
+        // inquilino não pagou: o aluguel não entra no repasse, só aparece como pendente
+        r.linhas.push({ imovelId: im.id, imovel: im.nome, tipo: "pendente", descricao: `Aluguel · ${c.inquilino} · aguardando pagamento do inquilino`, valor: 0 });
+      } else if (c) {
+        const aluguel = centavos((Number(c.recebido ?? c.aluguel) * d.percentual) / 100);
         const taxa = centavos((aluguel * im.taxaPct) / 100);
         r.linhas.push({ imovelId: im.id, imovel: im.nome, tipo: "aluguel", descricao: `Aluguel · ${c.inquilino}${parte}`, valor: aluguel });
         r.linhas.push({ imovelId: im.id, imovel: im.nome, tipo: "taxa", descricao: `Taxa de administração (${im.taxaPct}%)`, valor: -taxa });
@@ -74,7 +78,7 @@ export function calcularRepasses(competencia: string, imoveis: ImovelRepasse[], 
     r.itens.push(x.itemId);
   }
 
-  const ordem = { aluguel: 0, taxa: 1, seguro: 2, despesa: 3 };
+  const ordem = { aluguel: 0, pendente: 0, taxa: 1, seguro: 2, despesa: 3, cobranca: 4 };
   return [...porDono.values()]
     .filter((r) => r.linhas.length)
     .map((r) => ({

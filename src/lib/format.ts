@@ -33,3 +33,12 @@ export const nomeMes = (competencia: string) => {
   const [y, m] = competencia.split("-").map(Number);
   return `${MESES[m - 1]}/${y}`;
 };
+
+/** "2026-11", +1 → "2026-12" */
+export const mesRelativo = (mes: string, d: number) => {
+  const [y, m] = mes.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + d, 1)).toISOString().slice(0, 7);
+};
+
+/** "2026-11" do mês atual, ou o informado se for válido. */
+export const mesOu = (mes?: string) => (mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? mes : new Date().toISOString().slice(0, 7));

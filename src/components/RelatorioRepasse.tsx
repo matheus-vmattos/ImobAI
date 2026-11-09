@@ -29,7 +29,7 @@ export function RelatorioRepasse({ r }: { r: RepasseFechado }) {
             <tr key={imovel + i}>
               <td>{i === 0 ? imovel : ""}</td>
               <td className={l.valor < 0 ? "muted" : undefined}>{l.descricao}</td>
-              <td className="r num">{l.valor < 0 ? "− " : ""}{BRL(Math.abs(l.valor))}</td>
+              <td className="r num">{l.tipo === "pendente" ? <span className="pill warn">não pago</span> : <>{l.valor < 0 ? "− " : ""}{BRL(Math.abs(l.valor))}</>}</td>
             </tr>
           )))}
           <tr className="total"><td colSpan={2}><b>{r.liquido >= 0 ? "Líquido a receber" : "A pagar à imobiliária"}</b></td><td className="r num"><b>{BRL(Math.abs(r.liquido))}</b></td></tr>
