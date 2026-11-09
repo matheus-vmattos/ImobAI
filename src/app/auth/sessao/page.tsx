@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/Icon";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -24,7 +25,7 @@ export default function Sessao() {
   return (
     <div className="auth">
       <div className="auth-card">
-        <div className="brand"><i />ImobAI</div>
+        <div className="brand"><span className="logo"><Icon name="logo" /></span>ImobAI</div>
         <div className="panel">
           {erro
             ? <><span className="label">Link expirado ou inválido</span><a className="link" href="/login?modo=senha">Pedir um novo link</a></>
