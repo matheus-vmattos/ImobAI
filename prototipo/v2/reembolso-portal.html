@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImobAI · Fluxo de reembolso · proprietário (maquete v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ImobAI v2 · maquete do redesign (referências: Linear, Mercury, Vercel) */
+:root {
+  --bg: #08090b; --surface: #0f1114; --surface-2: #15181c; --hover: #1a1e23;
+  --border: rgba(255,255,255,.07); --border-2: rgba(255,255,255,.12);
+  --fg: #ecedef; --fg-2: #b4b8bf; --muted: #82878f; --dim: #5a5f67;
+  --accent: #5fd0ee; --accent-soft: rgba(95,208,238,.12); --accent-ink: #04161c;
+  --ok: #3ecf8e; --ok-soft: rgba(62,207,142,.12);
+  --warn: #f5a524; --warn-soft: rgba(245,165,36,.12);
+  --bad: #f2555a; --bad-soft: rgba(242,85,90,.12);
+  --dev: #a38bfa; --dev-soft: rgba(163,139,250,.12);
+  --r: 10px; --r-sm: 7px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box }
+html, body { margin: 0; height: 100% }
+body { background: var(--bg); color: var(--fg); font: 400 14px/1.5 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01" }
+a { color: inherit; text-decoration: none }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none }
+.num { font-variant-numeric: tabular-nums; letter-spacing: -.01em }
+.muted { color: var(--muted) } .dim { color: var(--dim) }
+svg.i { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none }
+
+/* botões */
+.btn { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: var(--r-sm); border: 1px solid var(--border-2); background: var(--surface-2); font-weight: 500; font-size: 13px; white-space: nowrap }
+.btn:hover { background: var(--hover) }
+.btn.primary { background: var(--fg); color: #0b0c0e; border-color: transparent }
+.btn.accent { background: var(--accent); color: var(--accent-ink); border-color: transparent }
+.btn.ghost { background: none; border-color: transparent; color: var(--fg-2) }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px }
+
+/* status */
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none }
+.tag { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap }
+.tag.ok { background: var(--ok-soft); color: var(--ok) } .tag.warn { background: var(--warn-soft); color: var(--warn) }
+.tag.bad { background: var(--bad-soft); color: var(--bad) } .tag.dev { background: var(--dev-soft); color: var(--dev) }
+.tag.neutral { background: rgba(255,255,255,.06); color: var(--fg-2) } .tag.accent { background: var(--accent-soft); color: var(--accent) }
+.av { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: #0b0c0e; flex: none }
+
+/* cartões */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r) }
+.card-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border) }
+.card-h h3 { margin: 0; font-size: 13.5px; font-weight: 600 }
+.card-h .sp { flex: 1 }
+.kpi { padding: 16px; display: grid; gap: 6px; position: relative; overflow: hidden }
+.kpi .l { color: var(--muted); font-size: 12.5px; display: flex; align-items: center; gap: 6px }
+.kpi .v { font-size: 24px; font-weight: 600; letter-spacing: -.02em }
+.kpi .d { font-size: 12px; display: flex; gap: 6px; align-items: center }
+.up { color: var(--ok) } .down { color: var(--bad) }
+.spark { position: absolute; right: 12px; bottom: 14px; width: 84px; height: 30px }
+
+/* tabela */
+table { width: 100%; border-collapse: collapse }
+th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 9px 16px; border-bottom: 1px solid var(--border) }
+td { padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; white-space: nowrap }
+tr:last-child td { border-bottom: 0 }
+tbody tr:hover td { background: rgba(255,255,255,.02) }
+.r { text-align: right }
+
+body { background: #1b1d21 }
+.stage { display: flex; gap: 36px; padding: 36px; align-items: flex-start; width: max-content }
+.frame { width: 390px; flex: none; display: grid; gap: 10px }
+.cap { color: #9aa0a8; font-size: 13px; font-weight: 500; padding-left: 4px } .cap b { color: #ecedef; font-weight: 600 }
+.phone { width: 390px; height: 844px; border-radius: 44px; background: var(--bg); border: 1px solid #2b2f35; overflow: hidden; position: relative; box-shadow: 0 30px 60px rgba(0,0,0,.45) }
+.scr { height: 100%; overflow: hidden; padding: 52px 16px 90px; display: grid; gap: 14px; align-content: start }
+.scr.det { padding-bottom: 28px }
+.bar-top { display: flex; align-items: center; gap: 10px }
+.bar-top .back { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border-2); display: grid; place-items: center; transform: rotate(180deg) }
+.bar-top b { font-size: 15px; font-weight: 600 }
+.tabs { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 8px 24px; background: rgba(10,11,14,.94); border-top: 1px solid var(--border) }
+.tab { display: grid; justify-items: center; gap: 3px; font-size: 11px; color: var(--muted) } .tab svg.i { width: 20px; height: 20px }
+.tab[aria-current] { color: var(--fg) } .tab[aria-current] svg { color: var(--accent) }
+
+h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em }
+.sub { color: var(--muted); margin: 0; font-size: 13.5px }
+.pad { padding: 16px; display: grid; gap: 12px }
+.row { display: flex; align-items: center; gap: 10px }
+.row .sp { flex: 1 }
+.big { font-size: 30px; font-weight: 600; letter-spacing: -.03em; line-height: 1 }
+.kv { display: grid; gap: 8px; font-size: 13px }
+.kv div { display: flex; justify-content: space-between; gap: 10px } .kv div span:first-child { color: var(--muted) }
+.file { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); font-size: 13px }
+.file .ic { width: 30px; height: 34px; border-radius: 5px; background: rgba(242,85,90,.15); color: var(--bad); display: grid; place-items: center; font-size: 9.5px; font-weight: 700 }
+.file small { color: var(--muted); display: block; font-size: 11.5px }
+.choice { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1px solid var(--border-2); background: var(--surface-2); text-align: left }
+.choice .r { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--dim); flex: none }
+.choice b { font-weight: 600; font-size: 13.5px; display: block } .choice small { color: var(--muted); font-size: 12px }
+.choice[aria-checked="true"] { border-color: var(--accent); background: rgba(95,208,238,.06) }
+.choice[aria-checked="true"] .r { border: 5px solid var(--accent) }
+.cta { height: 46px; border-radius: 11px; background: var(--fg); color: #0b0c0e; font-weight: 600; font-size: 14.5px; width: 100% }
+.cta.sec { background: none; color: var(--fg); border: 1px solid var(--border-2) }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.ta { border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; color: var(--dim); font-size: 13px; min-height: 58px; background: var(--surface) }
+.pix { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: rgba(95,208,238,.06); border: 1px dashed rgba(95,208,238,.35) }
+.pix .k { display: flex; align-items: center; gap: 8px; font-size: 13px } .pix .k code { font: 500 12.5px ui-monospace, Menlo, monospace; color: var(--fg) }
+.drop { border: 1px dashed var(--border-2); border-radius: 9px; padding: 12px; text-align: center; color: var(--muted); font-size: 12.5px }
+
+/* passos */
+.steps { display: grid; gap: 0 }
+.st { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; position: relative; padding-bottom: 14px }
+.st:not(:last-child)::before { content: ""; position: absolute; left: 10px; top: 20px; bottom: 0; width: 1.5px; background: var(--border-2) }
+.st.done:not(:last-child)::before { background: rgba(62,207,142,.45) }
+.st .o { width: 21px; height: 21px; border-radius: 50%; border: 1.5px solid var(--dim); display: grid; place-items: center; background: var(--bg); z-index: 1 }
+.st.done .o { background: var(--ok); border-color: var(--ok); color: #04140c } .st.done .o svg { width: 12px; height: 12px; stroke-width: 3 }
+.st.now .o { border-color: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft) } .st.now .o::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--warn) }
+.st b { font-weight: 500; font-size: 13px; display: block } .st small { color: var(--muted); font-size: 11.5px }
+.st .when { color: var(--dim); font-size: 11.5px; white-space: nowrap }
+.st.todo b { color: var(--muted) }
+
+/* resumo e lista */
+.sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.sum .card { padding: 12px; display: grid; gap: 4px } .sum .l { color: var(--muted); font-size: 12px } .sum .v { font-size: 17px; font-weight: 600 }
+.filters { display: flex; gap: 6px; overflow: hidden }
+.f { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--border-2); font-size: 12.5px; color: var(--fg-2); display: inline-flex; align-items: center; white-space: nowrap }
+.f[aria-pressed="true"] { background: var(--fg); color: #0b0c0e; border-color: transparent }
+.item { padding: 12px 14px; display: grid; gap: 8px; border-bottom: 1px solid var(--border) } .item:last-child { border-bottom: 0 }
+.item .t b { font-weight: 500; font-size: 13.5px } .item .t small { display: block; color: var(--muted); font-size: 12px }
+.item .v { text-align: right; font-weight: 600; font-size: 13.5px }
+.mini { display: flex; gap: 3px } .mini i { height: 4px; flex: 1; border-radius: 2px; background: var(--border-2) } .mini i.ok { background: var(--ok) } .mini i.w { background: var(--warn) }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="3" width="11" height="18" rx="1"/><path d="M15 9h4a1 1 0 0 1 1 1v11h-5"/><path d="M8 7h3M8 11h3M8 15h3"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.3-5.5 6.5-5.5s5.9 2.1 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.5 3.5 5.2"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 7h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a2 2 0 0 1 2-2h11"/><circle cx="16" cy="13.5" r="1.2"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 3.5V8h4.5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20.5V16h-4.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.6 14H3.5a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6.5 8-6.5s7.2 2.5 8 6.5"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12z"/><path d="M12 7.5 16.5 12 12 16.5 7.5 12z"/></symbol>
+</svg>
+
+<div class="stage">
+
+  <!-- 1. aprovar orçamento -->
+  <div class="frame"><div class="cap"><b>1 · Aprovar o orçamento</b> · antes do serviço</div>
+  <div class="phone"><div class="scr det">
+    <div class="bar-top"><span class="back"><svg class="i"><use href="#i-chev"/></svg></span><b>Orçamento</b><span class="sp" style="flex:1"></span><span class="tag warn">Aguardando você</span></div>
+    <div class="card pad">
+      <div><h2>Manutenção do portão</h2><p class="sub">Cond. Manoel de Souza 48 · área comum</p></div>
+      <div class="row"><span class="big num">R$ 500,00</span><span class="sp"></span><span class="muted" style="font-size:12.5px;text-align:right">sua parte<br><b class="num" style="color:var(--fg)">R$ 83,33</b></span></div>
+      <div class="kv">
+        <div><span>Rateio</span><span>2 de 12 cotas · Apto 102 e 302</span></div>
+        <div><span>Fornecedor</span><span>Portões Silva Ltda.</span></div>
+        <div><span>Prazo do serviço</span><span>até 20/11</span></div>
+      </div>
+      <div class="file"><span class="ic">PDF</span><span>Orçamento_portao.pdf<small>Enviado pela imobiliária · 09/11</small></span><svg class="i dim" style="margin-left:auto"><use href="#i-arrow"/></svg></div>
+    </div>
+    <div class="ta">Comentário (opcional): ex. pedir garantia de 90 dias</div>
+    <button class="cta">Aprovar orçamento</button>
+    <div class="btns"><button class="cta sec">Pedir outro</button><button class="cta sec" style="color:var(--bad)">Recusar</button></div>
+    <p class="sub" style="text-align:center;font-size:12px">Responder até 12/11 · depois disso a imobiliária entra em contato</p>
+  </div>
+  </div></div>
+
+  <!-- 2. pagar -->
+  <div class="frame"><div class="cap"><b>2 · Escolher como pagar</b> · depois do serviço</div>
+  <div class="phone"><div class="scr det">
+    <div class="bar-top"><span class="back"><svg class="i"><use href="#i-chev"/></svg></span><b>Manutenção do portão</b></div>
+    <div class="card pad">
+      <div class="row"><span class="tag ok"><svg class="i" style="width:13px;height:13px"><use href="#i-check"/></svg>Serviço concluído</span><span class="sp"></span><span class="muted" style="font-size:12px">14/11</span></div>
+      <div class="kv">
+        <div><span>Orçamento aprovado</span><span class="num">R$ 500,00</span></div>
+        <div><span>Valor final (nota)</span><span class="num" style="color:var(--ok)">R$ 480,00 · −4%</span></div>
+        <div><span><b style="color:var(--fg);font-weight:600">Sua parte</b></span><span class="num"><b style="font-weight:600">R$ 80,00</b></span></div>
+      </div>
+      <div class="file"><span class="ic">PDF</span><span>NF 2231 · Portões Silva<small>Nota fiscal do serviço</small></span><svg class="i dim" style="margin-left:auto"><use href="#i-arrow"/></svg></div>
+    </div>
+    <div class="sub" style="color:var(--fg);font-weight:600;font-size:14px">Como você quer pagar?</div>
+    <button class="choice"><span class="r"></span><span><b>Descontar no repasse</b><small>Sai do repasse de 10/12. Nada a fazer agora.</small></span></button>
+    <button class="choice" aria-checked="true"><span class="r"></span><span><b>Reembolsar por Pix</b><small>Você transfere e envia o comprovante.</small></span></button>
+    <div class="pix">
+      <div class="k"><span class="muted">Pix da imobiliária</span><span class="sp" style="flex:1"></span><code>financeiro@mattos.com.br</code></div>
+      <div class="k"><span class="muted">Valor</span><span class="sp" style="flex:1"></span><code>R$ 80,00</code><button class="btn sm">Copiar</button></div>
+      <div class="drop">＋ Anexar comprovante (foto ou PDF)</div>
+    </div>
+    <button class="choice"><span class="r"></span><span><b>Já paguei ao fornecedor</b><small>Anexe o recibo do pagamento direto.</small></span></button>
+    <button class="cta">Enviar comprovante</button>
+  </div>
+  </div></div>
+
+  <!-- 3. controle -->
+  <div class="frame"><div class="cap"><b>3 · Minhas despesas</b> · o controle de tudo</div>
+  <div class="phone"><div class="scr" style="gap:12px">
+    <div class="row"><h2>Minhas despesas</h2><span class="sp"></span><button class="btn ghost sm">Exportar</button></div>
+    <div class="sum">
+      <div class="card"><span class="l">Para aprovar</span><span class="v num" style="color:var(--warn)">1 · R$ 166,67</span></div>
+      <div class="card"><span class="l">A pagar</span><span class="v num" style="color:var(--fg-2)">Nada pendente</span></div>
+      <div class="card"><span class="l">Aguardando confirmação</span><span class="v num" style="color:var(--dev)">R$ 80,00</span></div>
+      <div class="card"><span class="l">Pago em 2026</span><span class="v num" style="color:var(--ok)">R$ 3.218,40</span></div>
+    </div>
+    <div class="filters"><span class="f" aria-pressed="true">Todas</span><span class="f">Em aberto</span><span class="f">Pagas</span><span class="f">Apto 302</span><span class="f">2026 ▾</span></div>
+    <div class="card">
+      <div class="item">
+        <div class="row"><span class="t"><b>Manutenção do portão</b><small>Manoel de Souza 48 · Reembolso por Pix</small></span><span class="sp"></span><span class="v num">R$ 80,00</span></div>
+        <div class="steps" style="margin-top:4px">
+          <div class="st done"><span class="o"><svg class="i"><use href="#i-check"/></svg></span><span><b>Orçamento aprovado</b><small>R$ 500,00 · por você</small></span><span class="when">10/11</span></div>
+          <div class="st done"><span class="o"><svg class="i"><use href="#i-check"/></svg></span><span><b>Serviço concluído</b><small>Nota fiscal R$ 480,00</small></span><span class="when">14/11</span></div>
+          <div class="st now"><span class="o"></span><span><b>Comprovante enviado</b><small>Imobiliária vai confirmar</small></span><span class="when">14/11</span></div>
+          <div class="st todo"><span class="o"></span><span><b>Recebimento confirmado</b></span><span class="when"></span></div>
+        </div>
+      </div>
+      <div class="item"><div class="row"><span class="t"><b>Troca da bomba d'água</b><small>Orçamento · responder até 12/11</small></span><span class="sp"></span><span class="v num">R$ 166,67</span></div>
+        <div class="mini"><i class="w"></i><i></i><i></i><i></i></div></div>
+      <div class="item"><div class="row"><span class="t"><b>Conta de água · out</b><small>Descontado no repasse de nov</small></span><span class="sp"></span><span class="v num">R$ 400,00</span></div>
+        <div class="mini"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i></div></div>
+      <div class="item"><div class="row"><span class="t"><b>IPTU 2026 · Loja</b><small>Pago ao fornecedor · recibo anexado</small></span><span class="sp"></span><span class="v num">R$ 400,00</span></div>
+        <div class="mini"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i></div></div>
+    </div>
+  </div>
+  <nav class="tabs"><a class="tab"><svg class="i"><use href="#i-grid"/></svg>Início</a><a class="tab"><svg class="i"><use href="#i-home"/></svg>Imóveis</a><a class="tab" aria-current="page"><svg class="i"><use href="#i-receipt"/></svg>Despesas</a><a class="tab"><svg class="i"><use href="#i-wallet"/></svg>Repasses</a></nav>
+  </div></div>
+
+</div>
+</body>
+</html>

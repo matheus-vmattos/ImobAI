@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImobAI · Fluxo de reembolso · proprietário (maquete v2)</title>
+<style>
+/*BASE*/
+body { background: #1b1d21 }
+.stage { display: flex; gap: 36px; padding: 36px; align-items: flex-start; width: max-content }
+.frame { width: 390px; flex: none; display: grid; gap: 10px }
+.cap { color: #9aa0a8; font-size: 13px; font-weight: 500; padding-left: 4px } .cap b { color: #ecedef; font-weight: 600 }
+.phone { width: 390px; height: 844px; border-radius: 44px; background: var(--bg); border: 1px solid #2b2f35; overflow: hidden; position: relative; box-shadow: 0 30px 60px rgba(0,0,0,.45) }
+.scr { height: 100%; overflow: hidden; padding: 52px 16px 90px; display: grid; gap: 14px; align-content: start }
+.scr.det { padding-bottom: 28px }
+.bar-top { display: flex; align-items: center; gap: 10px }
+.bar-top .back { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border-2); display: grid; place-items: center; transform: rotate(180deg) }
+.bar-top b { font-size: 15px; font-weight: 600 }
+.tabs { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 8px 24px; background: rgba(10,11,14,.94); border-top: 1px solid var(--border) }
+.tab { display: grid; justify-items: center; gap: 3px; font-size: 11px; color: var(--muted) } .tab svg.i { width: 20px; height: 20px }
+.tab[aria-current] { color: var(--fg) } .tab[aria-current] svg { color: var(--accent) }
+
+h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em }
+.sub { color: var(--muted); margin: 0; font-size: 13.5px }
+.pad { padding: 16px; display: grid; gap: 12px }
+.row { display: flex; align-items: center; gap: 10px }
+.row .sp { flex: 1 }
+.big { font-size: 30px; font-weight: 600; letter-spacing: -.03em; line-height: 1 }
+.kv { display: grid; gap: 8px; font-size: 13px }
+.kv div { display: flex; justify-content: space-between; gap: 10px } .kv div span:first-child { color: var(--muted) }
+.file { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); font-size: 13px }
+.file .ic { width: 30px; height: 34px; border-radius: 5px; background: rgba(242,85,90,.15); color: var(--bad); display: grid; place-items: center; font-size: 9.5px; font-weight: 700 }
+.file small { color: var(--muted); display: block; font-size: 11.5px }
+.choice { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1px solid var(--border-2); background: var(--surface-2); text-align: left }
+.choice .r { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--dim); flex: none }
+.choice b { font-weight: 600; font-size: 13.5px; display: block } .choice small { color: var(--muted); font-size: 12px }
+.choice[aria-checked="true"] { border-color: var(--accent); background: rgba(95,208,238,.06) }
+.choice[aria-checked="true"] .r { border: 5px solid var(--accent) }
+.cta { height: 46px; border-radius: 11px; background: var(--fg); color: #0b0c0e; font-weight: 600; font-size: 14.5px; width: 100% }
+.cta.sec { background: none; color: var(--fg); border: 1px solid var(--border-2) }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.ta { border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; color: var(--dim); font-size: 13px; min-height: 58px; background: var(--surface) }
+.pix { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: rgba(95,208,238,.06); border: 1px dashed rgba(95,208,238,.35) }
+.pix .k { display: flex; align-items: center; gap: 8px; font-size: 13px } .pix .k code { font: 500 12.5px ui-monospace, Menlo, monospace; color: var(--fg) }
+.drop { border: 1px dashed var(--border-2); border-radius: 9px; padding: 12px; text-align: center; color: var(--muted); font-size: 12.5px }
+
+/* passos */
+.steps { display: grid; gap: 0 }
+.st { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; position: relative; padding-bottom: 14px }
+.st:not(:last-child)::before { content: ""; position: absolute; left: 10px; top: 20px; bottom: 0; width: 1.5px; background: var(--border-2) }
+.st.done:not(:last-child)::before { background: rgba(62,207,142,.45) }
+.st .o { width: 21px; height: 21px; border-radius: 50%; border: 1.5px solid var(--dim); display: grid; place-items: center; background: var(--bg); z-index: 1 }
+.st.done .o { background: var(--ok); border-color: var(--ok); color: #04140c } .st.done .o svg { width: 12px; height: 12px; stroke-width: 3 }
+.st.now .o { border-color: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft) } .st.now .o::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--warn) }
+.st b { font-weight: 500; font-size: 13px; display: block } .st small { color: var(--muted); font-size: 11.5px }
+.st .when { color: var(--dim); font-size: 11.5px; white-space: nowrap }
+.st.todo b { color: var(--muted) }
+
+/* resumo e lista */
+.sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.sum .card { padding: 12px; display: grid; gap: 4px } .sum .l { color: var(--muted); font-size: 12px } .sum .v { font-size: 17px; font-weight: 600 }
+.filters { display: flex; gap: 6px; overflow: hidden }
+.f { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--border-2); font-size: 12.5px; color: var(--fg-2); display: inline-flex; align-items: center; white-space: nowrap }
+.f[aria-pressed="true"] { background: var(--fg); color: #0b0c0e; border-color: transparent }
+.item { padding: 12px 14px; display: grid; gap: 8px; border-bottom: 1px solid var(--border) } .item:last-child { border-bottom: 0 }
+.item .t b { font-weight: 500; font-size: 13.5px } .item .t small { display: block; color: var(--muted); font-size: 12px }
+.item .v { text-align: right; font-weight: 600; font-size: 13.5px }
+.mini { display: flex; gap: 3px } .mini i { height: 4px; flex: 1; border-radius: 2px; background: var(--border-2) } .mini i.ok { background: var(--ok) } .mini i.w { background: var(--warn) }
+</style>
+</head>
+<body>
+<!--ICONS-->
+<div class="stage">
+
+  <!-- 1. aprovar orçamento -->
+  <div class="frame"><div class="cap"><b>1 · Aprovar o orçamento</b> · antes do serviço</div>
+  <div class="phone"><div class="scr det">
+    <div class="bar-top"><span class="back"><svg class="i"><use href="#i-chev"/></svg></span><b>Orçamento</b><span class="sp" style="flex:1"></span><span class="tag warn">Aguardando você</span></div>
+    <div class="card pad">
+      <div><h2>Manutenção do portão</h2><p class="sub">Cond. Manoel de Souza 48 · área comum</p></div>
+      <div class="row"><span class="big num">R$ 500,00</span><span class="sp"></span><span class="muted" style="font-size:12.5px;text-align:right">sua parte<br><b class="num" style="color:var(--fg)">R$ 83,33</b></span></div>
+      <div class="kv">
+        <div><span>Rateio</span><span>2 de 12 cotas · Apto 102 e 302</span></div>
+        <div><span>Fornecedor</span><span>Portões Silva Ltda.</span></div>
+        <div><span>Prazo do serviço</span><span>até 20/11</span></div>
+      </div>
+      <div class="file"><span class="ic">PDF</span><span>Orçamento_portao.pdf<small>Enviado pela imobiliária · 09/11</small></span><svg class="i dim" style="margin-left:auto"><use href="#i-arrow"/></svg></div>
+    </div>
+    <div class="ta">Comentário (opcional): ex. pedir garantia de 90 dias</div>
+    <button class="cta">Aprovar orçamento</button>
+    <div class="btns"><button class="cta sec">Pedir outro</button><button class="cta sec" style="color:var(--bad)">Recusar</button></div>
+    <p class="sub" style="text-align:center;font-size:12px">Responder até 12/11 · depois disso a imobiliária entra em contato</p>
+  </div>
+  </div></div>
+
+  <!-- 2. pagar -->
+  <div class="frame"><div class="cap"><b>2 · Escolher como pagar</b> · depois do serviço</div>
+  <div class="phone"><div class="scr det">
+    <div class="bar-top"><span class="back"><svg class="i"><use href="#i-chev"/></svg></span><b>Manutenção do portão</b></div>
+    <div class="card pad">
+      <div class="row"><span class="tag ok"><svg class="i" style="width:13px;height:13px"><use href="#i-check"/></svg>Serviço concluído</span><span class="sp"></span><span class="muted" style="font-size:12px">14/11</span></div>
+      <div class="kv">
+        <div><span>Orçamento aprovado</span><span class="num">R$ 500,00</span></div>
+        <div><span>Valor final (nota)</span><span class="num" style="color:var(--ok)">R$ 480,00 · −4%</span></div>
+        <div><span><b style="color:var(--fg);font-weight:600">Sua parte</b></span><span class="num"><b style="font-weight:600">R$ 80,00</b></span></div>
+      </div>
+      <div class="file"><span class="ic">PDF</span><span>NF 2231 · Portões Silva<small>Nota fiscal do serviço</small></span><svg class="i dim" style="margin-left:auto"><use href="#i-arrow"/></svg></div>
+    </div>
+    <div class="sub" style="color:var(--fg);font-weight:600;font-size:14px">Como você quer pagar?</div>
+    <button class="choice"><span class="r"></span><span><b>Descontar no repasse</b><small>Sai do repasse de 10/12. Nada a fazer agora.</small></span></button>
+    <button class="choice" aria-checked="true"><span class="r"></span><span><b>Reembolsar por Pix</b><small>Você transfere e envia o comprovante.</small></span></button>
+    <div class="pix">
+      <div class="k"><span class="muted">Pix da imobiliária</span><span class="sp" style="flex:1"></span><code>financeiro@mattos.com.br</code></div>
+      <div class="k"><span class="muted">Valor</span><span class="sp" style="flex:1"></span><code>R$ 80,00</code><button class="btn sm">Copiar</button></div>
+      <div class="drop">＋ Anexar comprovante (foto ou PDF)</div>
+    </div>
+    <button class="choice"><span class="r"></span><span><b>Já paguei ao fornecedor</b><small>Anexe o recibo do pagamento direto.</small></span></button>
+    <button class="cta">Enviar comprovante</button>
+  </div>
+  </div></div>
+
+  <!-- 3. controle -->
+  <div class="frame"><div class="cap"><b>3 · Minhas despesas</b> · o controle de tudo</div>
+  <div class="phone"><div class="scr" style="gap:12px">
+    <div class="row"><h2>Minhas despesas</h2><span class="sp"></span><button class="btn ghost sm">Exportar</button></div>
+    <div class="sum">
+      <div class="card"><span class="l">Para aprovar</span><span class="v num" style="color:var(--warn)">1 · R$ 166,67</span></div>
+      <div class="card"><span class="l">A pagar</span><span class="v num" style="color:var(--fg-2)">Nada pendente</span></div>
+      <div class="card"><span class="l">Aguardando confirmação</span><span class="v num" style="color:var(--dev)">R$ 80,00</span></div>
+      <div class="card"><span class="l">Pago em 2026</span><span class="v num" style="color:var(--ok)">R$ 3.218,40</span></div>
+    </div>
+    <div class="filters"><span class="f" aria-pressed="true">Todas</span><span class="f">Em aberto</span><span class="f">Pagas</span><span class="f">Apto 302</span><span class="f">2026 ▾</span></div>
+    <div class="card">
+      <div class="item">
+        <div class="row"><span class="t"><b>Manutenção do portão</b><small>Manoel de Souza 48 · Reembolso por Pix</small></span><span class="sp"></span><span class="v num">R$ 80,00</span></div>
+        <div class="steps" style="margin-top:4px">
+          <div class="st done"><span class="o"><svg class="i"><use href="#i-check"/></svg></span><span><b>Orçamento aprovado</b><small>R$ 500,00 · por você</small></span><span class="when">10/11</span></div>
+          <div class="st done"><span class="o"><svg class="i"><use href="#i-check"/></svg></span><span><b>Serviço concluído</b><small>Nota fiscal R$ 480,00</small></span><span class="when">14/11</span></div>
+          <div class="st now"><span class="o"></span><span><b>Comprovante enviado</b><small>Imobiliária vai confirmar</small></span><span class="when">14/11</span></div>
+          <div class="st todo"><span class="o"></span><span><b>Recebimento confirmado</b></span><span class="when"></span></div>
+        </div>
+      </div>
+      <div class="item"><div class="row"><span class="t"><b>Troca da bomba d'água</b><small>Orçamento · responder até 12/11</small></span><span class="sp"></span><span class="v num">R$ 166,67</span></div>
+        <div class="mini"><i class="w"></i><i></i><i></i><i></i></div></div>
+      <div class="item"><div class="row"><span class="t"><b>Conta de água · out</b><small>Descontado no repasse de nov</small></span><span class="sp"></span><span class="v num">R$ 400,00</span></div>
+        <div class="mini"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i></div></div>
+      <div class="item"><div class="row"><span class="t"><b>IPTU 2026 · Loja</b><small>Pago ao fornecedor · recibo anexado</small></span><span class="sp"></span><span class="v num">R$ 400,00</span></div>
+        <div class="mini"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i></div></div>
+    </div>
+  </div>
+  <nav class="tabs"><a class="tab"><svg class="i"><use href="#i-grid"/></svg>Início</a><a class="tab"><svg class="i"><use href="#i-home"/></svg>Imóveis</a><a class="tab" aria-current="page"><svg class="i"><use href="#i-receipt"/></svg>Despesas</a><a class="tab"><svg class="i"><use href="#i-wallet"/></svg>Repasses</a></nav>
+  </div></div>
+
+</div>
+</body>
+</html>
