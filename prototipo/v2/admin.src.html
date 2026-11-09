@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImobAI · Visão geral (maquete v2)</title>
+<style>
+/*BASE*/
+.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh }
+/* menu lateral */
+.side { border-right: 1px solid var(--border); padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; background: #0a0b0e }
+.org { display: flex; align-items: center; gap: 10px; padding: 6px 8px 12px }
+.logo { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: linear-gradient(140deg, #1a2a31, #0e1519); border: 1px solid rgba(95,208,238,.25); color: var(--accent) }
+.org b { font-size: 13.5px; font-weight: 600; display: block; line-height: 1.2 } .org small { color: var(--muted); font-size: 12px }
+.search { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--muted); font-size: 13px; margin-bottom: 10px; background: var(--surface) }
+.search kbd { margin-left: auto; font: 500 11px Inter; color: var(--dim); border: 1px solid var(--border-2); border-radius: 4px; padding: 1px 5px }
+.grp { color: var(--dim); font-size: 11.5px; font-weight: 500; padding: 14px 10px 6px }
+.nav-i { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--r-sm); color: var(--fg-2); font-size: 13.5px; font-weight: 500 }
+.nav-i:hover { background: var(--hover); color: var(--fg) }
+.nav-i[aria-current] { background: var(--surface-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--border) }
+.nav-i[aria-current] svg { color: var(--accent) }
+.nav-i .n { margin-left: auto; font-size: 11.5px; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 0 7px; line-height: 18px }
+.me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px; border-top: 1px solid var(--border) }
+.me b { font-size: 13px; font-weight: 500; display: block; line-height: 1.2 } .me small { color: var(--muted); font-size: 11.5px }
+
+/* conteúdo */
+.main { min-width: 0 }
+.topbar { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 28px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(8,9,11,.82); backdrop-filter: blur(12px); z-index: 2 }
+.crumb { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center } .crumb b { color: var(--fg); font-weight: 500 }
+.topbar .sp { flex: 1 }
+.page { padding: 26px 28px 60px; display: grid; gap: 20px; max-width: 1240px }
+.head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap }
+.head h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em }
+.head p { margin: 4px 0 0; color: var(--muted) }
+.head .sp { flex: 1 }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
+.cols { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 12px; align-items: start }
+
+/* precisa de você */
+.todo { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border) }
+.todo:last-child { border-bottom: 0 }
+.todo .ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none }
+.todo .t { min-width: 0; flex: 1 } .todo .t b { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap } .todo .t small { color: var(--muted); font-size: 12.5px }
+.todo .v { font-weight: 600; margin-right: 6px }
+
+/* ocupação */
+.occ { padding: 6px 16px 14px; display: grid; gap: 14px }
+.occ-r { display: grid; gap: 7px }
+.occ-r .top { display: flex; justify-content: space-between; font-size: 13px } .occ-r .top span:last-child { color: var(--muted) }
+.bar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; gap: 2px; background: rgba(255,255,255,.04) }
+.bar i { display: block; height: 100% }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding: 0 16px 14px } .legend span { display: inline-flex; gap: 6px; align-items: center }
+
+/* gráfico */
+.chart { padding: 12px 16px 16px }
+.chart svg { width: 100%; height: 170px; display: block }
+.who-c { display: flex; align-items: center; gap: 10px }
+</style>
+</head>
+<body>
+<!--ICONS-->
+<div class="app">
+  <aside class="side">
+    <div class="org"><span class="logo"><svg class="i"><use href="#i-logo"/></svg></span><span><b>Mattos Imóveis</b><small>Imobiliária</small></span></div>
+    <div class="search"><svg class="i"><use href="#i-search"/></svg>Buscar<kbd>⌘K</kbd></div>
+    <a class="nav-i" aria-current="page"><svg class="i"><use href="#i-grid"/></svg>Visão geral</a>
+    <div class="grp">Carteira</div>
+    <a class="nav-i"><svg class="i"><use href="#i-home"/></svg>Imóveis</a>
+    <a class="nav-i"><svg class="i"><use href="#i-users"/></svg>Proprietários</a>
+    <a class="nav-i"><svg class="i"><use href="#i-building"/></svg>Condomínios</a>
+    <a class="nav-i"><svg class="i"><use href="#i-file"/></svg>Contratos<span class="n">3</span></a>
+    <div class="grp">Financeiro</div>
+    <a class="nav-i"><svg class="i"><use href="#i-receipt"/></svg>Despesas<span class="n">5</span></a>
+    <a class="nav-i"><svg class="i"><use href="#i-wallet"/></svg>Repasses</a>
+    <a class="nav-i"><svg class="i"><use href="#i-mail"/></svg>E-mails</a>
+    <div class="me"><span class="av" style="background:#5fd0ee">MM</span><span><b>Matheus Mattos</b><small>Administrador</small></span><svg class="i dim" style="margin-left:auto"><use href="#i-settings"/></svg></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb"><b>Visão geral</b></div><span class="sp"></span>
+      <button class="btn ghost sm"><svg class="i"><use href="#i-bell"/></svg></button>
+      <button class="btn sm"><svg class="i"><use href="#i-plus"/></svg>Novo imóvel</button>
+      <button class="btn accent sm"><svg class="i"><use href="#i-receipt"/></svg>Lançar despesa</button>
+    </div>
+
+    <div class="page">
+      <div class="head">
+        <div><h1>Bom dia, Matheus</h1><p>Segunda, 9 de novembro · 5 itens precisam de você hoje</p></div>
+      </div>
+
+      <div class="kpis">
+        <div class="card kpi"><span class="l"><svg class="i"><use href="#i-wallet"/></svg>Aluguel do mês</span><span class="v num">R$ 48.350</span>
+          <span class="d"><span class="up">↑ 3,2%</span><span class="muted">vs. outubro</span></span>
+          <svg class="spark" viewBox="0 0 84 30"><path d="M0 24 L14 22 L28 23 L42 17 L56 15 L70 12 L84 8" stroke="#3ecf8e" stroke-width="1.6" fill="none"/></svg></div>
+        <div class="card kpi"><span class="l"><svg class="i"><use href="#i-home"/></svg>Ocupação</span><span class="v num">87%</span>
+          <span class="d"><span class="muted">26 de 30 imóveis locados</span></span>
+          <svg class="spark" viewBox="0 0 84 30"><path d="M0 14 L14 16 L28 15 L42 18 L56 13 L70 12 L84 10" stroke="#5fd0ee" stroke-width="1.6" fill="none"/></svg></div>
+        <div class="card kpi"><span class="l"><svg class="i"><use href="#i-arrow"/></svg>Repasse previsto</span><span class="v num">R$ 41.120</span>
+          <span class="d"><span class="muted">fecha em 10/12 · 14 proprietários</span></span></div>
+        <div class="card kpi"><span class="l"><svg class="i"><use href="#i-alert"/></svg>Pendências</span><span class="v num" style="color:var(--warn)">5</span>
+          <span class="d"><span class="muted">2 reembolsos · 3 renovações</span></span></div>
+      </div>
+
+      <div class="cols">
+        <div class="card">
+          <div class="card-h"><h3>Precisa de você</h3><span class="tag warn">5</span><span class="sp"></span><a class="muted" style="font-size:12.5px">Ver tudo</a></div>
+          <div class="todo"><span class="ic" style="background:var(--dev-soft);color:var(--dev)"><svg class="i"><use href="#i-wallet"/></svg></span>
+            <span class="t"><b>Carlos Menezes informou o reembolso</b><small>Conta de água out/26 · Cond. Manoel de Souza 48</small></span>
+            <span class="v num">R$ 440,00</span><button class="btn sm">Confirmar</button></div>
+          <div class="todo"><span class="ic" style="background:var(--accent-soft);color:var(--accent)"><svg class="i"><use href="#i-refresh"/></svg></span>
+            <span class="t"><b>Casa 03 · proposta de R$ 2.900</b><small>Ana Ribeiro quer renovar com novo valor · vence 15/01</small></span>
+            <button class="btn sm">Registrar</button></div>
+          <div class="todo"><span class="ic" style="background:var(--bad-soft);color:var(--bad)"><svg class="i"><use href="#i-alert"/></svg></span>
+            <span class="t"><b>IPTU Loja 2026 sem resposta</b><small>Prazo venceu há 3 dias · 2 proprietários</small></span>
+            <button class="btn ghost sm">Lembrar</button></div>
+          <div class="todo"><span class="ic" style="background:var(--accent-soft);color:var(--accent)"><svg class="i"><use href="#i-refresh"/></svg></span>
+            <span class="t"><b>Apto 302 · renovar pelo valor atual</b><small>Carlos Menezes · vence 15/12</small></span>
+            <button class="btn sm">Registrar</button></div>
+          <div class="todo"><span class="ic" style="background:var(--dev-soft);color:var(--dev)"><svg class="i"><use href="#i-wallet"/></svg></span>
+            <span class="t"><b>Beatriz Lemos informou o reembolso</b><small>Pintura fachada · Residencial Jardins</small></span>
+            <span class="v num">R$ 300,00</span><button class="btn sm">Confirmar</button></div>
+        </div>
+
+        <div style="display:grid;gap:12px">
+          <div class="card">
+            <div class="card-h"><h3>Ocupação por condomínio</h3></div>
+            <div class="occ">
+              <div class="occ-r"><div class="top"><span>Cond. Manoel de Souza 48</span><span class="num">8 de 10</span></div>
+                <div class="bar"><i style="width:70%;background:var(--ok)"></i><i style="width:10%;background:var(--dev)"></i><i style="width:20%;background:var(--warn)"></i></div></div>
+              <div class="occ-r"><div class="top"><span>Residencial Jardins</span><span class="num">13 de 16</span></div>
+                <div class="bar"><i style="width:81%;background:var(--ok)"></i><i style="width:6%;background:var(--warn)"></i><i style="width:13%;background:var(--dim)"></i></div></div>
+              <div class="occ-r"><div class="top"><span>Imóveis avulsos</span><span class="num">3 de 4</span></div>
+                <div class="bar"><i style="width:75%;background:var(--ok)"></i><i style="width:25%;background:var(--warn)"></i></div></div>
+            </div>
+            <div class="legend"><span><i class="dot" style="background:var(--ok)"></i>Locado</span><span><i class="dot" style="background:var(--dev)"></i>Em devolução</span><span><i class="dot" style="background:var(--warn)"></i>Vazio</span><span><i class="dot" style="background:var(--dim)"></i>Indisponível</span></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h3>Repasses</h3><span class="muted" style="font-size:12.5px">últimos 6 meses</span></div>
+            <div class="chart"><svg viewBox="0 0 360 170" preserveAspectRatio="none">
+              <g stroke="rgba(255,255,255,.06)"><line x1="0" y1="30" x2="360" y2="30"/><line x1="0" y1="80" x2="360" y2="80"/><line x1="0" y1="130" x2="360" y2="130"/></g>
+              <g fill="rgba(95,208,238,.28)"><rect x="14" y="62" width="34" height="88" rx="4"/><rect x="74" y="58" width="34" height="92" rx="4"/><rect x="134" y="64" width="34" height="86" rx="4"/><rect x="194" y="50" width="34" height="100" rx="4"/><rect x="254" y="46" width="34" height="104" rx="4"/></g>
+              <rect x="314" y="38" width="34" height="112" rx="4" fill="#5fd0ee"/>
+              <g fill="#5a5f67" font-size="10" font-family="Inter" text-anchor="middle"><text x="31" y="166">jun</text><text x="91" y="166">jul</text><text x="151" y="166">ago</text><text x="211" y="166">set</text><text x="271" y="166">out</text><text x="331" y="166" fill="#ecedef">nov</text></g>
+              <text x="331" y="31" fill="#ecedef" font-size="10.5" font-family="Inter" font-weight="600" text-anchor="middle">41,1 mil</text>
+            </svg></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Contratos vencendo</h3><span class="tag neutral">próximos 90 dias</span><span class="sp"></span><button class="btn ghost sm">Ver contratos<svg class="i"><use href="#i-chev"/></svg></button></div>
+        <table>
+          <thead><tr><th>Imóvel</th><th>Proprietário</th><th>Inquilino</th><th class="r">Aluguel</th><th>Vence</th><th>Resposta</th></tr></thead>
+          <tbody>
+            <tr><td><b style="font-weight:500">Apto 302</b> <span class="muted">· Manoel de Souza 48</span></td><td><span class="who-c"><span class="av" style="background:#f5a524">CM</span>Carlos Menezes</span></td><td class="muted">Beatriz Lemos</td><td class="r num">R$ 2.350</td><td><span class="num">15/12</span> <span class="muted">· 36 dias</span></td><td><span class="tag ok"><span class="dot" style="background:currentColor"></span>Renovar</span></td></tr>
+            <tr><td><b style="font-weight:500">Casa 03</b> <span class="muted">· Residencial Jardins</span></td><td><span class="who-c"><span class="av" style="background:#a38bfa">AR</span>Ana Ribeiro</span></td><td class="muted">Gustavo Rocha</td><td class="r num">R$ 2.750</td><td><span class="num">15/01</span> <span class="muted">· 67 dias</span></td><td><span class="tag accent"><span class="dot" style="background:currentColor"></span>Propôs R$ 2.900</span></td></tr>
+            <tr><td><b style="font-weight:500">Loja</b> <span class="muted">· Av. Nilópolis, 455</span></td><td><span class="who-c"><span class="av" style="background:#f5a524">CM</span>Carlos +1</span></td><td class="muted">Farmácia Bem Viver</td><td class="r num">R$ 6.500</td><td><span class="num">20/01</span> <span class="muted">· 72 dias</span></td><td><span class="tag neutral"><span class="dot" style="background:currentColor"></span>Aguardando</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

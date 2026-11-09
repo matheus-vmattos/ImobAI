@@ -1,0 +1,58 @@
+/* ImobAI v2 · maquete do redesign (referências: Linear, Mercury, Vercel) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+:root {
+  --bg: #08090b; --surface: #0f1114; --surface-2: #15181c; --hover: #1a1e23;
+  --border: rgba(255,255,255,.07); --border-2: rgba(255,255,255,.12);
+  --fg: #ecedef; --fg-2: #b4b8bf; --muted: #82878f; --dim: #5a5f67;
+  --accent: #5fd0ee; --accent-soft: rgba(95,208,238,.12); --accent-ink: #04161c;
+  --ok: #3ecf8e; --ok-soft: rgba(62,207,142,.12);
+  --warn: #f5a524; --warn-soft: rgba(245,165,36,.12);
+  --bad: #f2555a; --bad-soft: rgba(242,85,90,.12);
+  --dev: #a38bfa; --dev-soft: rgba(163,139,250,.12);
+  --r: 10px; --r-sm: 7px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box }
+html, body { margin: 0; height: 100% }
+body { background: var(--bg); color: var(--fg); font: 400 14px/1.5 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01" }
+a { color: inherit; text-decoration: none }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none }
+.num { font-variant-numeric: tabular-nums; letter-spacing: -.01em }
+.muted { color: var(--muted) } .dim { color: var(--dim) }
+svg.i { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none }
+
+/* botões */
+.btn { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: var(--r-sm); border: 1px solid var(--border-2); background: var(--surface-2); font-weight: 500; font-size: 13px; white-space: nowrap }
+.btn:hover { background: var(--hover) }
+.btn.primary { background: var(--fg); color: #0b0c0e; border-color: transparent }
+.btn.accent { background: var(--accent); color: var(--accent-ink); border-color: transparent }
+.btn.ghost { background: none; border-color: transparent; color: var(--fg-2) }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px }
+
+/* status */
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none }
+.tag { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap }
+.tag.ok { background: var(--ok-soft); color: var(--ok) } .tag.warn { background: var(--warn-soft); color: var(--warn) }
+.tag.bad { background: var(--bad-soft); color: var(--bad) } .tag.dev { background: var(--dev-soft); color: var(--dev) }
+.tag.neutral { background: rgba(255,255,255,.06); color: var(--fg-2) } .tag.accent { background: var(--accent-soft); color: var(--accent) }
+.av { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: #0b0c0e; flex: none }
+
+/* cartões */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r) }
+.card-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border) }
+.card-h h3 { margin: 0; font-size: 13.5px; font-weight: 600 }
+.card-h .sp { flex: 1 }
+.kpi { padding: 16px; display: grid; gap: 6px; position: relative; overflow: hidden }
+.kpi .l { color: var(--muted); font-size: 12.5px; display: flex; align-items: center; gap: 6px }
+.kpi .v { font-size: 24px; font-weight: 600; letter-spacing: -.02em }
+.kpi .d { font-size: 12px; display: flex; gap: 6px; align-items: center }
+.up { color: var(--ok) } .down { color: var(--bad) }
+.spark { position: absolute; right: 12px; bottom: 14px; width: 84px; height: 30px }
+
+/* tabela */
+table { width: 100%; border-collapse: collapse }
+th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 9px 16px; border-bottom: 1px solid var(--border) }
+td { padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; white-space: nowrap }
+tr:last-child td { border-bottom: 0 }
+tbody tr:hover td { background: rgba(255,255,255,.02) }
+.r { text-align: right }
