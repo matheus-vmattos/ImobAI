@@ -11,6 +11,7 @@ import { calcularRateio, type Regra, type UnidadeRateio } from "@/lib/rateio";
 import { createServiceClient } from "@/lib/supabase/server";
 import { carregarCarteira } from "./dados";
 import { aplicarDecisoesAutomaticas, responsaveis } from "@/lib/decisoes";
+import { estornarItens } from "@/lib/cobrancas";
 
 const voltar = (path: string, params: Record<string, string>): never => redirect(`${path}?${new URLSearchParams(params)}`);
 const BUCKET = "despesas";
@@ -124,8 +125,11 @@ export async function enviarDespesa(form: FormData) {
 }
 
 export async function excluirDespesa(form: FormData) {
-  const { supabase } = await exigirAdmin();
+  const { supabase, user } = await exigirAdmin();
   const id = String(form.get("id"));
+  // o que já foi cobrado volta como crédito na próxima cobrança
+  const { data: cobrados } = await supabase.from("despesa_itens").select("id").eq("despesa_id", id).not("cobranca_id", "is", null);
+  if (cobrados?.length) await estornarItens(supabase, cobrados.map((i) => i.id), "despesa excluída", user.id);
   const { data: d } = await supabase.from("despesas").select("pdf_path").eq("id", id).single();
   const { error } = await supabase.from("despesas").delete().eq("id", id);
   if (error) voltar(`/admin/despesas/${id}`, { erro: error.message });

@@ -88,7 +88,9 @@ export function extrato(o: {
   }
   const FORMA: Record<string, string> = { deposito: "Depósito", pix: "Pix", transferencia: "Transferência", outro: "Pagamento" };
   for (const p of o.pagamentos) m.push({ data: p.data, tipo: "pagamento", descricao: FORMA[p.forma] ?? "Pagamento", valor: p.valor, ref: p.id });
-  m.sort((a, b) => b.data.localeCompare(a.data) || (a.tipo === "cobranca" ? 1 : -1));
+  // mais recente primeiro; no mesmo dia: abono/repasse, depois pagamento, depois a cobrança
+  const ordem = { cobranca: 0, pagamento: 1, abono: 2, repasse: 2 };
+  m.sort((a, b) => b.data.slice(0, 10).localeCompare(a.data.slice(0, 10)) || ordem[b.tipo] - ordem[a.tipo]);
   const saldo = centavos(m.reduce((a, x) => a + x.valor, 0));
   return { movimentos: m, saldo };
 }

@@ -3,6 +3,10 @@ import { getSessao } from "@/lib/auth";
 import { BRL, BRL0, diasAte, RENOVACAO_DIAS } from "@/lib/format";
 import { carregarPortal } from "./dados";
 import { carregarDespesas } from "./despesas";
+import { carregarConta } from "./conta";
+import Link from "next/link";
+import { Icon } from "@/components/Icon";
+import { data as dataBR } from "@/lib/format";
 import { Historico } from "./Historico";
 import { ListaImoveis } from "./ListaImoveis";
 import { Pendencias } from "./Pendencias";
@@ -12,11 +16,12 @@ import type { Renovacao } from "@/lib/types";
 export default async function Portal({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
   const { supabase, proprietarioIds, cadastros } = await getSessao();
-  const [{ imoveis, condominios }, { pendentes, historico }, { data: p }, { data: rens }] = await Promise.all([
+  const [{ imoveis, condominios }, { pendentes, historico }, { data: p }, { data: rens }, conta] = await Promise.all([
     carregarPortal(supabase, proprietarioIds),
     carregarDespesas(supabase),
     Promise.resolve({ data: cadastros[0] ?? null }),
     supabase.from("renovacoes").select("*"),
+    carregarConta(supabase),
   ]);
   const primeiroNome = (p?.nome ?? "").split(" ")[0];
   const cnt = (s: string) => imoveis.filter((i) => i.status === s).length;
@@ -65,6 +70,14 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
       </section>
 
       <Aviso ok={ok} erro={erro} />
+
+      {conta.abertas.length > 0 && (
+        <Link href={conta.abertas.length === 1 ? `/portal/cobrancas/${conta.abertas[0].id}` : "/portal/extrato"} className="saldo" style={{ textDecoration: "none" }}>
+          <span className="label" style={{ display: "flex", gap: 6, alignItems: "center" }}><Icon name="receipt" />{conta.abertas.length === 1 ? `Cobrança da semana · vence ${dataBR(conta.abertas[0].vencimento)}` : `${conta.abertas.length} cobranças em aberto`}</span>
+          <span className="v">{BRL(conta.devido)}</span>
+          <span className="muted small">{conta.abertas.reduce((a, c) => a + c.linhas.length, 0)} contas · toque para ver e enviar o comprovante</span>
+        </Link>
+      )}
 
       <section className="sec" id="pendencias">
         <div className="sec-h"><h2>Para aprovar</h2><span className="count">{pendentes.length ? `${pendentes.length} em aberto` : "tudo em dia"}</span><span className="rule" /></div>

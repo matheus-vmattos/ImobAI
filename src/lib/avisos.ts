@@ -113,3 +113,72 @@ export async function repasseFechado(repasseIds: string[]) {
     }];
   }));
 }
+
+/* ---------- cobrança semanal ---------- */
+
+type CobrancaEmail = { id: string; pagador_id: string; total: number; vencimento: string; inicio: string; fim: string; linhas: { descricao: string; onde: string; valor: number }[] };
+
+/** Resumo semanal: uma mensagem por cobrança, com todas as contas, o total e os dados para pagar. */
+export async function cobrancasEmitidas(ids: string[]) {
+  const [{ data: cs }, { data: cfg }] = await Promise.all([
+    db().from("cobrancas").select("id, pagador_id, total, vencimento, inicio, fim, linhas").in("id", ids).eq("status", "aberta"),
+    db().from("config").select("favorecido, banco, pix").maybeSingle(),
+  ]);
+  const lista = (cs ?? []) as CobrancaEmail[];
+  const emails = await emailsProprietarios(lista.map((c) => c.pagador_id));
+  const pagar = [cfg?.favorecido && `Favorecido: ${cfg.favorecido}`, cfg?.banco && `Conta: ${cfg.banco}`, cfg?.pix && `Pix: ${cfg.pix}`].filter(Boolean).join(" · ");
+  await notificar(lista.flatMap((c): Mensagem[] => {
+    const p = emails.get(c.pagador_id);
+    if (!p) return [];
+    return [{
+      evento: "cobranca_emitida", ref: c.id, para: p.email,
+      assunto: `Contas da semana ${data(c.inicio).slice(0, 5)} a ${data(c.fim).slice(0, 5)}: ${BRL(c.total)}`,
+      html: modelo(`Olá, ${primeiroNome(p.nome)}. Estas são as contas da semana.`, [
+        ...c.linhas.slice(0, 40).map((l) => `• ${l.descricao}${l.onde ? ` (${l.onde})` : ""}: ${BRL(l.valor)}`),
+        c.linhas.length > 40 ? `… e mais ${c.linhas.length - 40} contas no portal.` : "",
+        `Total: ${BRL(c.total)} · vence em ${data(c.vencimento)}.`,
+        pagar ? `Para pagar: ${pagar}. Depois, envie o comprovante pelo portal.` : "Depois de pagar, envie o comprovante pelo portal.",
+      ].filter(Boolean), { texto: "Ver cobrança e enviar comprovante", href: link(`/portal/cobrancas/${c.id}`) }),
+    }];
+  }));
+}
+
+/** Proprietário enviou comprovante: avisa a imobiliária para conferir. */
+export async function pagamentoInformado(pagamentoId: string) {
+  const { data: p } = await db().from("pagamentos").select("valor, forma, proprietarios(nome)").eq("id", pagamentoId).single();
+  if (!p) return;
+  const nome = (p.proprietarios as unknown as { nome: string }).nome;
+  const para = await emailsImobiliaria();
+  await notificar(para.map((email) => ({
+    evento: "pagamento_informado", ref: pagamentoId, para: email,
+    assunto: `${nome} enviou comprovante de ${BRL(p.valor)}`,
+    html: modelo(`${nome} informou um pagamento.`, [`Valor informado: ${BRL(p.valor)}. Confira no extrato do banco e confirme.`],
+      { texto: "Conferir pagamento", href: link(`/admin/cobrancas/pagamento/${pagamentoId}`) }),
+  })));
+}
+
+export async function pagamentoConfirmado(pagamentoId: string) {
+  const { data: p } = await db().from("pagamentos").select("pagador_id, valor_confirmado, informado_por").eq("id", pagamentoId).single();
+  if (!p || p.informado_por !== "proprietario") return;
+  const pr = (await emailsProprietarios([p.pagador_id])).get(p.pagador_id);
+  if (!pr) return;
+  await notificar([{
+    evento: "pagamento_confirmado", ref: pagamentoId, para: pr.email,
+    assunto: `Pagamento recebido: ${BRL(p.valor_confirmado)}`,
+    html: modelo(`Olá, ${primeiroNome(pr.nome)}. Recebemos seu pagamento.`, [`Valor: ${BRL(p.valor_confirmado)}. O extrato já está atualizado.`],
+      { texto: "Ver extrato", href: link("/portal/extrato") }),
+  }]);
+}
+
+export async function pagamentoRecusado(pagamentoId: string) {
+  const { data: p } = await db().from("pagamentos").select("pagador_id, valor, motivo_recusa").eq("id", pagamentoId).single();
+  if (!p) return;
+  const pr = (await emailsProprietarios([p.pagador_id])).get(p.pagador_id);
+  if (!pr) return;
+  await notificar([{
+    evento: "pagamento_recusado", ref: pagamentoId, para: pr.email,
+    assunto: "Não conseguimos confirmar seu pagamento",
+    html: modelo(`Olá, ${primeiroNome(pr.nome)}.`, [`O comprovante de ${BRL(p.valor)} não pôde ser confirmado: ${p.motivo_recusa ?? "não encontramos o valor no extrato"}.`, "Se já pagou, envie outro comprovante pelo portal."],
+      { texto: "Abrir o portal", href: link("/portal/extrato") }),
+  }]);
+}

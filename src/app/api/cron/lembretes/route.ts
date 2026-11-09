@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { emailsProprietarios, link, modelo, notificar, primeiroNome, type Mensagem } from "@/lib/email";
 import { BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
 import { createServiceClient } from "@/lib/supabase/server";
+import { rotinaDiaria } from "@/lib/rotinas";
 
 /**
  * Lembretes diários (Vercel Cron chama com Authorization: Bearer CRON_SECRET).
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
   const db = createServiceClient();
+  const rotina = await rotinaDiaria(db);
   const hoje = new Date().toISOString().slice(0, 10);
   const limite = new Date(Date.now() + RENOVACAO_DIAS * 864e5).toISOString().slice(0, 10);
 
@@ -57,5 +59,5 @@ export async function GET(req: NextRequest) {
       ], { texto: "Responder", href: link("/portal#pendencias") }) });
   }
   await notificar(msgs);
-  return NextResponse.json({ enviados: msgs.length });
+  return NextResponse.json({ enviados: msgs.length, ...rotina });
 }

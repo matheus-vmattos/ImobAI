@@ -5,11 +5,13 @@ import { getSessao } from "@/lib/auth";
 import { MARCA } from "@/lib/marca";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const { user, papel, cadastros } = await getSessao();
+  const { user, papel, cadastros, supabase } = await getSessao();
   if (papel === "admin") redirect("/admin");
   const p = cadastros[0];
+  const { count: abertas } = await supabase.from("cobrancas").select("*", { count: "exact", head: true }).eq("status", "aberta");
   const links: NavItem[] = [
     { href: "/portal", label: "Início", icon: "grid" },
+    { href: "/portal/extrato", label: "Extrato", icon: "receipt", badge: abertas ?? 0 },
     { href: "/portal/repasses", label: "Repasses", icon: "wallet" },
   ];
   return <Shell links={links} abas={links} nome={p?.nome ?? user.email ?? ""} papel="Proprietário" marca={MARCA}>{children}</Shell>;

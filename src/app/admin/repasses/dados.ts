@@ -35,7 +35,32 @@ export async function calcularPrevia(supabase: SupabaseClient, competencia: stri
   const descontos: DescontoRepasse[] = ((it ?? []) as unknown as ItemRow[]).map((i) => ({
     itemId: i.id, proprietarioId: i.proprietario_id, imovelId: i.imovel_id, descricao: i.despesas.descricao, valor: Number(i.valor), taxaAdm: Number(i.taxa_adm),
   }));
-  return calcularRepasses(competencia, imoveis, descontos);
+  const previa = calcularRepasses(competencia, imoveis, descontos).map((r) => ({ ...r, cobrancas: [] as { id: string; saldo: number }[] }));
+  return incluirCobrancasVencidas(supabase, previa);
+}
+
+/** Proprietário que aceita: cobrança vencida e não paga sai do repasse (item "Cobrança ... em aberto"). */
+async function incluirCobrancasVencidas<T extends ReturnType<typeof calcularRepasses>[number] & { cobrancas: { id: string; saldo: number }[] }>(supabase: SupabaseClient, previa: T[]) {
+  const ids = previa.map((r) => r.proprietarioId);
+  if (!ids.length) return previa;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const [{ data: cs }, { data: ps }] = await Promise.all([
+    supabase.from("cobrancas").select("id, pagador_id, inicio, fim, total, pago, abonado, descontado").eq("status", "aberta").lt("vencimento", hoje).in("pagador_id", ids),
+    supabase.from("proprietarios").select("id, desconta_vencidas").in("id", ids),
+  ]);
+  const aceita = new Set((ps ?? []).filter((p) => p.desconta_vencidas).map((p) => p.id as string));
+  const dm = (iso: string) => iso.slice(8, 10) + "/" + iso.slice(5, 7);
+  for (const c of cs ?? []) {
+    const r = previa.find((x) => x.proprietarioId === c.pagador_id);
+    if (!r || !aceita.has(c.pagador_id)) continue;
+    const saldo = Math.round((Number(c.total) - Number(c.pago) - Number(c.abonado) - Number(c.descontado)) * 100) / 100;
+    if (saldo <= 0) continue;
+    r.linhas.push({ imovelId: "", imovel: "Cobranças", tipo: "cobranca", descricao: `Cobrança ${dm(c.inicio)} a ${dm(c.fim)} vencida e não paga`, valor: -saldo });
+    r.cobrancas.push({ id: c.id, saldo });
+    r.despesas = Math.round((r.despesas + saldo) * 100) / 100;
+    r.liquido = Math.round((r.liquido - saldo) * 100) / 100;
+  }
+  return previa;
 }
 
 /** "2026-11" do mês corrente, ou o informado se for válido. */

@@ -50,3 +50,11 @@ test("extrato: cobrança, depósito e abono zeram o saldo", () => {
   assert.equal(e.movimentos.length, 3);
   assert.equal(e.movimentos.find((m) => m.tipo === "cobranca")!.descricao, "Cobrança 03/11 a 09/11 · 4 contas");
 });
+
+test("extrato do mesmo dia: abono, pagamento e cobrança nessa ordem", () => {
+  const e = extrato({
+    cobrancas: [{ id: "c1", emitidaEm: "2026-11-09T09:00:00Z", inicio: "2026-11-02", fim: "2026-11-08", total: 100, abonado: 1, descontado: 0, quitadaEm: "2026-11-09T15:00:00Z", qtd: 1 }],
+    pagamentos: [{ id: "p1", data: "2026-11-09", valor: 99, forma: "pix" }],
+  });
+  assert.deepEqual(e.movimentos.map((m) => m.tipo), ["abono", "pagamento", "cobranca"]);
+});
