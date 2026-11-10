@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImobAI · Portal simples · proprietário (maquete v2)</title>
+<style>
+/*BASE*/
+body { background: #1b1d21 }
+.stage { display: flex; gap: 36px; padding: 36px; align-items: flex-start; width: max-content }
+.frame { width: 390px; flex: none; display: grid; gap: 10px }
+.cap { color: #9aa0a8; font-size: 13px; font-weight: 500; padding-left: 4px } .cap b { color: #ecedef; font-weight: 600 }
+.phone { width: 390px; height: 844px; border-radius: 44px; background: var(--bg); border: 1px solid #2b2f35; overflow: hidden; position: relative; box-shadow: 0 30px 60px rgba(0,0,0,.45) }
+.scr { height: 100%; overflow: hidden; padding: 52px 16px 90px; display: grid; gap: 14px; align-content: start }
+.scr.det { padding-bottom: 28px }
+.bar-top { display: flex; align-items: center; gap: 10px }
+.bar-top .back { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--border-2); display: grid; place-items: center; transform: rotate(180deg) }
+.bar-top b { font-size: 15px; font-weight: 600 }
+.tabs { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 8px 24px; background: rgba(10,11,14,.94); border-top: 1px solid var(--border) }
+.tab { display: grid; justify-items: center; gap: 3px; font-size: 11px; color: var(--muted) } .tab svg.i { width: 20px; height: 20px }
+.tab[aria-current] { color: var(--fg) } .tab[aria-current] svg { color: var(--accent) }
+
+h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em }
+.sub { color: var(--muted); margin: 0; font-size: 13.5px }
+.pad { padding: 16px; display: grid; gap: 12px }
+.row { display: flex; align-items: center; gap: 10px }
+.row .sp { flex: 1 }
+.big { font-size: 30px; font-weight: 600; letter-spacing: -.03em; line-height: 1 }
+.kv { display: grid; gap: 8px; font-size: 13px }
+.kv div { display: flex; justify-content: space-between; gap: 10px } .kv div span:first-child { color: var(--muted) }
+.file { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); font-size: 13px }
+.file .ic { width: 30px; height: 34px; border-radius: 5px; background: rgba(242,85,90,.15); color: var(--bad); display: grid; place-items: center; font-size: 9.5px; font-weight: 700 }
+.file small { color: var(--muted); display: block; font-size: 11.5px }
+.choice { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1px solid var(--border-2); background: var(--surface-2); text-align: left }
+.choice .r { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--dim); flex: none }
+.choice b { font-weight: 600; font-size: 13.5px; display: block } .choice small { color: var(--muted); font-size: 12px }
+.choice[aria-checked="true"] { border-color: var(--accent); background: rgba(95,208,238,.06) }
+.choice[aria-checked="true"] .r { border: 5px solid var(--accent) }
+.cta { height: 46px; border-radius: 11px; background: var(--fg); color: #0b0c0e; font-weight: 600; font-size: 14.5px; width: 100% }
+.cta.sec { background: none; color: var(--fg); border: 1px solid var(--border-2) }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.ta { border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; color: var(--dim); font-size: 13px; min-height: 58px; background: var(--surface) }
+.pix { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: rgba(95,208,238,.06); border: 1px dashed rgba(95,208,238,.35) }
+.pix .k { display: flex; align-items: center; gap: 8px; font-size: 13px } .pix .k code { font: 500 12.5px ui-monospace, Menlo, monospace; color: var(--fg) }
+.drop { border: 1px dashed var(--border-2); border-radius: 9px; padding: 12px; text-align: center; color: var(--muted); font-size: 12.5px }
+
+/* passos */
+.steps { display: grid; gap: 0 }
+.st { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; position: relative; padding-bottom: 14px }
+.st:not(:last-child)::before { content: ""; position: absolute; left: 10px; top: 20px; bottom: 0; width: 1.5px; background: var(--border-2) }
+.st.done:not(:last-child)::before { background: rgba(62,207,142,.45) }
+.st .o { width: 21px; height: 21px; border-radius: 50%; border: 1.5px solid var(--dim); display: grid; place-items: center; background: var(--bg); z-index: 1 }
+.st.done .o { background: var(--ok); border-color: var(--ok); color: #04140c } .st.done .o svg { width: 12px; height: 12px; stroke-width: 3 }
+.st.now .o { border-color: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft) } .st.now .o::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--warn) }
+.st b { font-weight: 500; font-size: 13px; display: block } .st small { color: var(--muted); font-size: 11.5px }
+.st .when { color: var(--dim); font-size: 11.5px; white-space: nowrap }
+.st.todo b { color: var(--muted) }
+
+/* resumo e lista */
+.sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.sum .card { padding: 12px; display: grid; gap: 4px } .sum .l { color: var(--muted); font-size: 12px } .sum .v { font-size: 17px; font-weight: 600 }
+.filters { display: flex; gap: 6px; overflow: hidden }
+.f { height: 28px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--border-2); font-size: 12.5px; color: var(--fg-2); display: inline-flex; align-items: center; white-space: nowrap }
+.f[aria-pressed="true"] { background: var(--fg); color: #0b0c0e; border-color: transparent }
+.item { padding: 12px 14px; display: grid; gap: 8px; border-bottom: 1px solid var(--border) } .item:last-child { border-bottom: 0 }
+.item .t b { font-weight: 500; font-size: 13.5px } .item .t small { display: block; color: var(--muted); font-size: 12px }
+.item .v { text-align: right; font-weight: 600; font-size: 13.5px }
+.mini { display: flex; gap: 3px } .mini i { height: 4px; flex: 1; border-radius: 2px; background: var(--border-2) } .mini i.ok { background: var(--ok) } .mini i.w { background: var(--warn) }
+
+/* cobrança semanal */
+.grp { font-size: 12px; color: var(--muted); font-weight: 500; padding: 10px 14px 4px }
+.li { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-size: 13px }
+.li .t { flex: 1; min-width: 0 } .li .t b { font-weight: 500; display: block } .li .t small { color: var(--muted); font-size: 11.5px }
+.li .pdf { font-size: 9px; font-weight: 700; color: var(--bad); background: rgba(242,85,90,.14); border-radius: 4px; padding: 2px 4px }
+.tot { display: flex; align-items: center; padding: 12px 14px; border-top: 1px solid var(--border); font-weight: 600 }
+.tot span:last-child { margin-left: auto; font-size: 18px }
+.bank { display: grid; gap: 7px; padding: 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 12.5px }
+.bank div { display: flex; gap: 8px; align-items: center } .bank div span:first-child { color: var(--muted); width: 74px; flex: none }
+.bank code { font: 500 12.5px ui-monospace, Menlo, monospace }
+.excl { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px dashed var(--border-2); border-radius: 9px }
+.receipt { height: 150px; border-radius: 10px; background: repeating-linear-gradient(0deg, #d9d6cf 0 9px, #cfccc4 9px 10px); position: relative; overflow: hidden; border: 1px solid var(--border-2) }
+.receipt::before { content: "itaú · DEPÓSITO DINHEIRO · FAVORECIDO: MATTOS IMÓVEIS LTDA · VALOR R$ 1.950,00"; position: absolute; inset: 12px 14px; font: 600 10px/1.6 ui-monospace, Menlo, monospace; color: #3d3b37; white-space: normal }
+.receipt.b::before { content: "itaú · DEPÓSITO DINHEIRO · FAVORECIDO: MATTOS IMÓVEIS LTDA · VALOR R$ 600,00" }
+.thumbs { display: grid; grid-template-columns: 1fr 1fr 64px; gap: 8px; align-items: stretch }
+.add { border: 1px dashed var(--border-2); border-radius: 10px; display: grid; place-items: center; color: var(--muted); font-size: 22px }
+.field { display: grid; gap: 6px } .field label { color: var(--muted); font-size: 12px }
+.inp { height: 44px; border-radius: 10px; border: 1px solid var(--border-2); background: var(--surface); display: flex; align-items: center; padding: 0 12px; font-size: 16px; font-weight: 600 }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border) }
+.seg span { text-align: center; padding: 7px 0; border-radius: 8px; font-size: 12.5px; color: var(--muted) } .seg span[aria-pressed="true"] { background: var(--surface-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--border-2) }
+.cmp { display: grid; gap: 6px; font-size: 13px; padding: 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border) }
+.cmp div { display: flex } .cmp div span:last-child { margin-left: auto }
+/* extrato */
+.saldo { padding: 16px; display: grid; gap: 4px; background: radial-gradient(120% 140% at 100% 0%, rgba(62,207,142,.10), transparent 55%), var(--surface) }
+.wk { font-size: 12px; color: var(--muted); font-weight: 500; padding: 12px 14px 2px }
+.mv { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-size: 13px }
+.mv .ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; flex: none }
+.mv .t { flex: 1; min-width: 0 } .mv .t b { font-weight: 500; display: block } .mv .t small { color: var(--muted); font-size: 11.5px }
+.mv .v { font-weight: 600; white-space: nowrap }
+
+/* portal simples */
+.hi { display: grid; gap: 2px } .hi h2 { font-size: 22px } .hi p { margin: 0; color: var(--muted); font-size: 13.5px }
+.td { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border) }
+.td:last-child { border-bottom: 0 }
+.td .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none }
+.td .t { flex: 1; min-width: 0 } .td .t b { font-weight: 600; font-size: 14px; display: block } .td .t small { color: var(--muted); font-size: 12.5px }
+.go { color: var(--dim) }
+.money { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.mo { padding: 14px; display: grid; gap: 4px }
+.mo .l { color: var(--muted); font-size: 12.5px } .mo .v { font-size: 21px; font-weight: 600; letter-spacing: -.02em } .mo small { color: var(--muted); font-size: 11.5px; line-height: 1.35 }
+.mo.in { background: radial-gradient(120% 140% at 100% 0%, rgba(62,207,142,.10), transparent 60%), var(--surface) }
+.cd { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--border) } .cd:last-child { border-bottom: 0 }
+.cd .t { flex: 1; min-width: 0 } .cd .t b { font-weight: 600; font-size: 14px; display: block } .cd .t small { color: var(--muted); font-size: 12px }
+.cd .v { text-align: right; font-weight: 600; font-size: 14px } .cd .v small { display: block; color: var(--muted); font-weight: 400; font-size: 11.5px }
+.mbar { display: flex; height: 5px; border-radius: 9px; overflow: hidden; gap: 2px; margin-top: 7px } .mbar i { display: block }
+.un { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.u2 { padding: 11px 12px; display: grid; gap: 3px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border) }
+.u2 b { font-weight: 600; font-size: 13.5px } .u2 small { color: var(--muted); font-size: 11.5px } .u2 .s { font-size: 12px; display: flex; gap: 6px; align-items: center }
+.info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px } .info .card { padding: 10px 12px; display: grid; gap: 2px } .info small { color: var(--muted); font-size: 11px } .info b { font: 500 12px ui-monospace, Menlo, monospace }
+.seg2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border) }
+.seg2 span { text-align: center; padding: 7px 0; border-radius: 8px; font-size: 12.5px; color: var(--muted) } .seg2 span[aria-pressed="true"] { background: var(--surface-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--border-2) }
+</style>
+</head>
+<body>
+<!--ICONS-->
+<div class="stage">
+
+  <!-- 1. início -->
+  <div class="frame"><div class="cap"><b>1 · Início</b> · o que fazer, quanto recebe, quanto paga</div>
+  <div class="phone"><div class="scr" style="gap:14px">
+    <div class="hi"><h2>Boa tarde, Eduardo</h2><p>Mattos Imóveis · seu atendimento</p></div>
+    <div class="card" style="padding:4px 0">
+      <div class="wk" style="padding:10px 14px 2px">Para você</div>
+      <div class="td"><span class="ic" style="background:var(--warn-soft);color:var(--warn)"><svg class="i"><use href="#i-wallet"/></svg></span>
+        <span class="t"><b>Pagar as contas da semana</b><small>4 contas · até 16/11</small></span><span class="num" style="font-weight:600">R$ 2.551,30</span><svg class="i go"><use href="#i-chev"/></svg></div>
+      <div class="td"><span class="ic" style="background:var(--accent-soft);color:var(--accent)"><svg class="i"><use href="#i-check"/></svg></span>
+        <span class="t"><b>Aprovar orçamento</b><small>Impermeabilização · Valoriza II</small></span><span class="num" style="font-weight:600">R$ 6.800</span><svg class="i go"><use href="#i-chev"/></svg></div>
+      <div class="td"><span class="ic" style="background:var(--dev-soft);color:var(--dev)"><svg class="i"><use href="#i-refresh"/></svg></span>
+        <span class="t"><b>Renovar contrato?</b><small>Apto 104 · vence em 36 dias</small></span><svg class="i go"><use href="#i-chev"/></svg></div>
+    </div>
+    <div class="money">
+      <div class="card mo in"><span class="l">Você recebe</span><span class="v num" style="color:var(--ok)">R$ 62.892</span><small>dia 10/12<br>47 de 50 aluguéis já pagos</small></div>
+      <div class="card mo"><span class="l">Você paga</span><span class="v num">R$ 2.551</span><small>contas da semana<br>até 16/11</small></div>
+    </div>
+    <div class="row"><h2 style="font-size:16px">Seus imóveis</h2><span class="sp"></span><span class="muted" style="font-size:12.5px">50 · 4 prédios</span></div>
+    <div class="card">
+      <div class="cd"><span class="t"><b>Ed. Valoriza I</b><small>20 unidades · 19 alugadas</small><div class="mbar"><i style="flex:19;background:var(--ok)"></i><i style="flex:1;background:var(--warn)"></i></div></span><span class="v num">R$ 32.400<small>por mês</small></span><svg class="i go"><use href="#i-chev"/></svg></div>
+      <div class="cd"><span class="t"><b>Ed. Valoriza II</b><small>12 unidades · 9 alugadas · 1 saindo</small><div class="mbar"><i style="flex:9;background:var(--ok)"></i><i style="flex:1;background:var(--dev)"></i><i style="flex:2;background:var(--warn)"></i></div></span><span class="v num">R$ 15.300<small>por mês</small></span><svg class="i go"><use href="#i-chev"/></svg></div>
+      <div class="cd"><span class="t"><b>Itaúna Family III</b><small>10 casas · 9 alugadas</small><div class="mbar"><i style="flex:9;background:var(--ok)"></i><i style="flex:1;background:var(--warn)"></i></div></span><span class="v num">R$ 15.200<small>por mês</small></span><svg class="i go"><use href="#i-chev"/></svg></div>
+    </div>
+  </div><nav class="tabs"><a class="tab" aria-current="page"><svg class="i"><use href="#i-grid"/></svg>Início</a><a class="tab"><svg class="i"><use href="#i-home"/></svg>Imóveis</a><a class="tab"><svg class="i"><use href="#i-receipt"/></svg>Extrato</a></nav></div></div>
+
+  <!-- 2. prédio -->
+  <div class="frame"><div class="cap"><b>2 · Um prédio</b> · tocar no condomínio</div>
+  <div class="phone"><div class="scr det" style="gap:12px">
+    <div class="bar-top"><span class="back"><svg class="i"><use href="#i-chev"/></svg></span><b>Ed. Valoriza I</b></div>
+    <p class="sub" style="margin-top:-6px">Rua 06, 120 · 20 unidades suas</p>
+    <div class="money">
+      <div class="card mo in"><span class="l">Aluguéis por mês</span><span class="v num">R$ 32.400</span><small>19 alugadas · 1 vaga</small></div>
+      <div class="card mo"><span class="l">Contas do prédio</span><span class="v num">R$ 2.105</span><small>em novembro<br>zelador, lixo, portão</small></div>
+    </div>
+    <div class="info">
+      <div class="card"><small>IPTU</small><b>101.001.0001</b></div>
+      <div class="card"><small>Energia</small><b>3000000001</b></div>
+      <div class="card"><small>Água</small><b>50001</b></div>
+    </div>
+    <div class="row"><h2 style="font-size:15px">Unidades</h2><span class="sp"></span><span class="f" aria-pressed="true" style="height:26px">Todas</span><span class="f" style="height:26px">Vagas 1</span></div>
+    <div class="un">
+      <div class="u2"><b>Apto 101</b><small>até 03/2027 · sua parte 50%</small><span class="s"><i class="dot" style="background:var(--ok)"></i>Alugado · R$ 800</span></div>
+      <div class="u2"><b>Apto 102</b><small>até 07/2027 · sua parte 50%</small><span class="s"><i class="dot" style="background:var(--ok)"></i>Alugado · R$ 850</span></div>
+      <div class="u2"><b>Apto 104</b><small style="color:var(--warn)">vence em 36 dias</small><span class="s"><i class="dot" style="background:var(--ok)"></i>Alugado · R$ 1.800</span></div>
+      <div class="u2"><b>Apto 112</b><small>pronto para alugar</small><span class="s"><i class="dot" style="background:var(--warn)"></i>Vago</span></div>
+      <div class="u2"><b>Apto 105</b><small>até 11/2027</small><span class="s"><i class="dot" style="background:var(--ok)"></i>Alugado · R$ 1.500</span></div>
+      <div class="u2"><b>Apto 106</b><small>até 02/2028</small><span class="s"><i class="dot" style="background:var(--ok)"></i>Alugado · R$ 1.600</span></div>
+    </div>
+    <div class="row"><h2 style="font-size:15px">Contas deste mês</h2></div>
+    <div class="card">
+      <div class="cd"><span class="t"><b>Salário zelador</b><small>sua parte das 20 unidades</small></span><span class="v num">R$ 1.764,82</span></div>
+      <div class="cd"><span class="t"><b>Remoção de lixo</b><small>paga em 14/11</small></span><span class="v num">R$ 90,91</span></div>
+    </div>
+  </div></div></div>
+
+  <!-- 3. extrato -->
+  <div class="frame"><div class="cap"><b>3 · Extrato</b> · o que recebeu e o que pagou, num lugar só</div>
+  <div class="phone"><div class="scr" style="gap:12px">
+    <div class="row"><h2>Extrato</h2><span class="sp"></span><button class="btn ghost sm">Baixar PDF</button></div>
+    <div class="seg2"><span aria-pressed="true">Tudo</span><span>Recebi</span><span>Paguei</span></div>
+    <div class="card" style="padding-bottom:4px">
+      <div class="wk">Novembro</div>
+      <div class="mv"><span class="ic" style="background:var(--ok-soft);color:var(--ok)"><svg class="i"><use href="#i-arrow"/></svg></span><span class="t"><b>Você recebeu os aluguéis de outubro</b><small>10/11 · 48 aluguéis · ver detalhes</small></span><span class="v num" style="color:var(--ok)">+ R$ 61.430</span></div>
+      <div class="mv"><span class="ic" style="background:var(--warn-soft);color:var(--warn)"><svg class="i"><use href="#i-receipt"/></svg></span><span class="t"><b>Contas da semana</b><small>03 a 09/11 · 4 contas · paga</small></span><span class="v num">− R$ 2.551,30</span></div>
+      <div class="mv"><span class="ic" style="background:rgba(255,255,255,.06);color:var(--fg-2)"><svg class="i"><use href="#i-check"/></svg></span><span class="t"><b>Diferença perdoada</b><small>você depositou R$ 2.550,00</small></span><span class="v num" style="color:var(--fg-2)">R$ 1,30</span></div>
+      <div class="wk">Outubro</div>
+      <div class="mv"><span class="ic" style="background:var(--ok-soft);color:var(--ok)"><svg class="i"><use href="#i-arrow"/></svg></span><span class="t"><b>Você recebeu os aluguéis de setembro</b><small>10/10 · 47 aluguéis</small></span><span class="v num" style="color:var(--ok)">+ R$ 60.112</span></div>
+      <div class="mv"><span class="ic" style="background:var(--warn-soft);color:var(--warn)"><svg class="i"><use href="#i-receipt"/></svg></span><span class="t"><b>Contas da semana</b><small>27/10 a 02/11 · 2 contas · paga</small></span><span class="v num">− R$ 514,81</span></div>
+    </div>
+  </div><nav class="tabs"><a class="tab"><svg class="i"><use href="#i-grid"/></svg>Início</a><a class="tab"><svg class="i"><use href="#i-home"/></svg>Imóveis</a><a class="tab" aria-current="page"><svg class="i"><use href="#i-receipt"/></svg>Extrato</a></nav></div></div>
+
+</div>
+</body>
+</html>
