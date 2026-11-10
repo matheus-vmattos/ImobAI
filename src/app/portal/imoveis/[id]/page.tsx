@@ -74,7 +74,7 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
         </div>
 
         <div className="panel">
-          <div className="sec-h"><h2>Repasse estimado</h2><span className="rule" /></div>
+          <div className="sec-h"><h2>Você recebe por este imóvel</h2><span className="rule" /></div>
           {linhas.length ? (
             <div className="box">
               {linhas.map(([k, v]) => (
@@ -83,11 +83,11 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 12px", background: "var(--panel-2)", fontWeight: 600 }}>
-                <span>{liquido >= 0 ? "Líquido a receber" : "A pagar à imobiliária"}</span><span className="num" style={{ color: "var(--accent)" }}>{BRL(Math.abs(liquido))}</span>
+                <span>{liquido >= 0 ? "Você recebe" : "Você paga"}</span><span className="num" style={{ color: "var(--accent)" }}>{BRL(Math.abs(liquido))}</span>
               </div>
             </div>
           ) : <p className="muted small" style={{ margin: 0 }}>Sem valores para este mês.</p>}
-          <small className="muted">Estimativa do próximo repasse. Inclui as despesas que você marcou para descontar.</small>
+          <small className="muted">Estimativa do mês. Já tira a taxa da imobiliária, o seguro e as contas que você escolheu descontar.</small>
         </div>
       </div>
       <section className="sec">

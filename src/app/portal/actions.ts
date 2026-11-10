@@ -9,7 +9,7 @@ import { numero, texto } from "@/lib/form";
 import { guardarComprovantes } from "@/lib/arquivos";
 import { createServiceClient } from "@/lib/supabase/server";
 
-const voltar = (params: Record<string, string>, ancora = "pendencias", path = "/portal"): never =>
+const voltar = (params: Record<string, string>, ancora = "pendencias", path = "/portal/decidir"): never =>
   redirect(`${path}?${new URLSearchParams(params)}#${ancora}`);
 const DECISOES = ["desconto", "reembolso", "proprio"];
 
@@ -59,7 +59,7 @@ export async function responderRenovacao(form: FormData) {
   const contrato = String(form.get("contrato_id"));
   const decisao = String(form.get("decisao") ?? "");
   const pedido = String(form.get("voltar") ?? "");
-  const path = /^\/portal(\/|$)/.test(pedido) ? pedido : "/portal";
+  const path = /^\/portal(\/|$)/.test(pedido) ? pedido : "/portal/decidir";
   const { error } = await supabase.rpc("responder_renovacao", {
     p_contrato: contrato,
     p_decisao: RENOVACAO.includes(decisao) ? decisao : null,

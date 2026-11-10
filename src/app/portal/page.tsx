@@ -1,105 +1,95 @@
+import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
+import { Icon } from "@/components/Icon";
 import { getSessao } from "@/lib/auth";
-import { BRL, BRL0, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { MARCA } from "@/lib/marca";
+import type { Renovacao } from "@/lib/types";
+import { carregarConta } from "./conta";
 import { carregarPortal } from "./dados";
 import { carregarDespesas } from "./despesas";
-import { carregarConta } from "./conta";
-import Link from "next/link";
-import { Icon } from "@/components/Icon";
-import { data as dataBR } from "@/lib/format";
-import { Historico } from "./Historico";
-import { ListaImoveis } from "./ListaImoveis";
-import { Pendencias } from "./Pendencias";
-import { Renovacoes, type ContratoRenovacao } from "./Renovacoes";
-import type { Renovacao } from "@/lib/types";
+import { Predios } from "./Predios";
+import { predios, proximoRecebimento } from "./resumo";
+
+const saudacao = () => {
+  const h = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }).format(new Date()));
+  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+};
 
 export default async function Portal({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
   const { supabase, proprietarioIds, cadastros } = await getSessao();
-  const [{ imoveis, condominios }, { pendentes, historico }, { data: p }, { data: rens }, conta] = await Promise.all([
+  const [{ imoveis, condominios }, { pendentes }, { data: rens }, conta, recebe] = await Promise.all([
     carregarPortal(supabase, proprietarioIds),
     carregarDespesas(supabase),
-    Promise.resolve({ data: cadastros[0] ?? null }),
-    supabase.from("renovacoes").select("*"),
+    supabase.from("renovacoes").select("contrato_id"),
     carregarConta(supabase),
+    proximoRecebimento(supabase, proprietarioIds),
   ]);
-  const primeiroNome = (p?.nome ?? "").split(" ")[0];
-  const cnt = (s: string) => imoveis.filter((i) => i.status === s).length;
-  const locados = imoveis.filter((i) => i.status === "locado");
-  const bruto = locados.reduce((a, i) => a + (i.aluguel ?? 0) * i.percentual / 100, 0);
-  const vencendo = locados.filter((i) => i.fim && diasAte(i.fim) <= RENOVACAO_DIAS).length;
-  const semResposta = pendentes.filter((d) => d.situacao === "aguardando");
-  const respostas = (rens ?? []) as Renovacao[];
-  const renovacoes: ContratoRenovacao[] = locados
-    .filter((i) => i.contratoId && i.fim && diasAte(i.fim) <= RENOVACAO_DIAS)
-    .sort((a, b) => a.fim!.localeCompare(b.fim!))
-    .map((i) => ({ contratoId: i.contratoId!, imovel: [condominios.find((c) => c.id && c.id === i.condominioId)?.nome, i.nome].filter(Boolean).join(" · "),
-      aluguel: i.aluguel ?? 0, fim: i.fim!, inquilino: i.inquilino, resposta: respostas.find((r) => r.contrato_id === i.contratoId) ?? null }));
+  const nome = (cadastros[0]?.nome ?? "").split(" ")[0];
+  const respondidas = new Set(((rens ?? []) as Pick<Renovacao, "contrato_id">[]).map((r) => r.contrato_id));
+  const renovar = imoveis.filter((i) => i.status === "locado" && i.contratoId && i.fim && diasAte(i.fim) <= RENOVACAO_DIAS && !respondidas.has(i.contratoId));
+  const nomeCondo = (id: string | null) => condominios.find((c) => c.id && c.id === id)?.nome;
+  const emConferencia = conta.emConferencia.length > 0;
 
-  if (!imoveis.length) {
-    return (
-      <section className="hero">
-        <div className="label">Portal do proprietário</div>
-        <h1>Olá{primeiroNome ? `, ${primeiroNome}` : ""}.</h1>
-        <div className="empty">Ainda não há imóveis vinculados ao seu cadastro. Fale com a imobiliária.</div>
-      </section>
-    );
-  }
-
-  const frases = [
-    semResposta.length ? <><b>{semResposta.length} despesa{semResposta.length > 1 ? "s" : ""}</b> aguarda{semResposta.length > 1 ? "m" : ""} sua decisão</> : null,
-    vencendo ? <><b>{vencendo} contrato{vencendo > 1 ? "s" : ""}</b> vence{vencendo > 1 ? "m" : ""} em até {RENOVACAO_DIAS} dias</> : null,
-  ].filter(Boolean);
+  const tarefas = [
+    ...(conta.abertas.length && !emConferencia ? [{
+      k: "pagar", ic: "wallet", cls: "warn", t: conta.abertas.length === 1 ? "Pagar as contas da semana" : `Pagar ${conta.abertas.length} semanas de contas`,
+      s: `${conta.abertas.reduce((a, c) => a + c.linhas.length, 0)} contas · até ${data(conta.abertas[0].vencimento)}`, v: BRL(conta.devido),
+      href: conta.abertas.length === 1 ? `/portal/cobrancas/${conta.abertas[0].id}` : "/portal/extrato",
+    }] : []),
+    ...pendentes.map((d) => ({ k: d.id, ic: "check", cls: "accent", t: "Aprovar despesa", s: `${d.descricao} · ${d.onde}`, v: BRL(d.total), href: `/portal/decidir#${d.id}` })),
+    ...renovar.map((i) => ({ k: i.id, ic: "refresh", cls: "dev", t: "Renovar contrato?", s: `${[nomeCondo(i.condominioId), i.nome].filter(Boolean).join(" · ")} · vence em ${diasAte(i.fim!)} dias`, v: "", href: `/portal/imoveis/${i.id}#renovacoes` })),
+  ];
+  const lista = predios(imoveis, condominios);
 
   return (
     <>
-      <section className="hero">
-        <div className="label">Portal do proprietário</div>
-        <h1>
-          Olá{primeiroNome ? `, ${primeiroNome}` : ""}.{" "}
-          {frases.length ? <>{frases[0]}{frases[1] && <> e {frases[1]}</>}.</> : "Tudo em dia."}
-        </h1>
-        <div className="kpis">
-          <div className="kpi"><span className="label">Para aprovar</span><span className={`v ${semResposta.length ? "attn" : ""}`}>{semResposta.length}</span>
-            <small>{semResposta.length ? `${BRL(semResposta.reduce((a, d) => a + d.total, 0))} no total` : "nenhuma pendência"}</small></div>
-          <div className="kpi"><span className="label">Imóveis</span><span className="v">{imoveis.length}</span>
-            <small>{cnt("locado")} locados · {cnt("vazio")} vazios · {cnt("devolucao")} em devolução</small></div>
-          <div className="kpi"><span className="label">Aluguel bruto</span><span className="v">{BRL0(bruto)}</span><small>sua parte, por mês</small></div>
-          <div className="kpi"><span className="label">Vencendo</span><span className={`v ${vencendo ? "attn" : ""}`}>{vencendo}</span><small>contratos em até {RENOVACAO_DIAS} dias</small></div>
-        </div>
+      <section className="hero" style={{ gap: 4 }}>
+        <h1>{saudacao()}{nome ? `, ${nome}` : ""}</h1>
+        <p className="muted">{MARCA} · seu atendimento</p>
       </section>
-
       <Aviso ok={ok} erro={erro} />
 
-      {conta.abertas.length > 0 && (
-        <Link href={conta.abertas.length === 1 ? `/portal/cobrancas/${conta.abertas[0].id}` : "/portal/extrato"} className="saldo" style={{ textDecoration: "none" }}>
-          <span className="label" style={{ display: "flex", gap: 6, alignItems: "center" }}><Icon name="receipt" />{conta.abertas.length === 1 ? `Cobrança da semana · vence ${dataBR(conta.abertas[0].vencimento)}` : `${conta.abertas.length} cobranças em aberto`}</span>
-          <span className="v">{BRL(conta.devido)}</span>
-          <span className="muted small">{conta.abertas.reduce((a, c) => a + c.linhas.length, 0)} contas · toque para ver e enviar o comprovante</span>
-        </Link>
+      {!imoveis.length ? (
+        <div className="empty"><b>Seus imóveis vão aparecer aqui.</b>A {MARCA} está preparando seu cadastro.</div>
+      ) : (
+        <>
+          <section className="box">
+            <div className="wk">Para você</div>
+            {tarefas.length ? tarefas.map((x) => (
+              <Link key={x.k} href={x.href} className="mv" style={{ textDecoration: "none" }}>
+                <span className={`ic ${x.cls}`}><Icon name={x.ic} /></span>
+                <span className="t"><b>{x.t}</b><small>{x.s}</small></span>
+                {x.v && <span className="v">{x.v}</span>}<Icon name="chev" className="dim" />
+              </Link>
+            )) : (
+              <div className="mv"><span className="ic ok"><Icon name="check" /></span><span className="t"><b>Está tudo em dia</b><small>Nada precisa de você agora.</small></span></div>
+            )}
+            {emConferencia && (
+              <div className="mv"><span className="ic dev"><Icon name="refresh" /></span><span className="t"><b>Comprovante recebido</b><small>A {MARCA} está conferindo seu pagamento.</small></span></div>
+            )}
+          </section>
+
+          <div className="kpis" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+            <Link href={recebe.repasseId ? `/portal/repasses/${recebe.repasseId}` : "/portal/extrato?ver=recebi"} className="kpi saldo" style={{ textDecoration: "none", padding: 16 }}>
+              <span className="label">Você recebe</span>
+              <span className="v" style={{ color: "var(--ok)", fontSize: 24 }}>{BRL0(recebe.valor)}</span>
+              <small>{recebe.fechado ? "fechado" : "previsto"} para {recebe.dia}{recebe.total ? ` · ${recebe.pagos} de ${recebe.total} aluguéis já pagos` : ""}</small>
+            </Link>
+            <Link href="/portal/extrato?ver=paguei" className="kpi" style={{ textDecoration: "none" }}>
+              <span className="label">Você paga</span>
+              <span className="v">{conta.devido > 0 ? BRL0(conta.devido) : "Nada"}</span>
+              <small>{conta.devido > 0 ? `contas da semana · até ${data(conta.abertas[0].vencimento)}` : "nenhuma conta em aberto"}</small>
+            </Link>
+          </div>
+
+          <section className="sec">
+            <div className="sec-h"><h2>Seus imóveis</h2><span className="rule" /><span className="muted small">{imoveis.length} · {lista.length} {lista.length === 1 ? "prédio" : "prédios"}</span></div>
+            <Predios lista={lista} />
+          </section>
+        </>
       )}
-
-      <section className="sec" id="pendencias">
-        <div className="sec-h"><h2>Para aprovar</h2><span className="count">{pendentes.length ? `${pendentes.length} em aberto` : "tudo em dia"}</span><span className="rule" /></div>
-        {pendentes.length ? <Pendencias pendentes={pendentes} condominios={condominios} /> : <div className="empty">Nenhuma despesa aguardando você.</div>}
-      </section>
-
-      {renovacoes.length > 0 && (
-        <section className="sec" id="renovacoes">
-          <div className="sec-h"><h2>Renovações</h2><span className="count">{renovacoes.filter((r) => !r.resposta).length} sem resposta</span><span className="rule" /></div>
-          <Renovacoes itens={renovacoes} />
-        </section>
-      )}
-
-      <section className="sec">
-        <div className="sec-h"><h2>Meus imóveis</h2><span className="count">{imoveis.length}</span><span className="rule" /></div>
-        <ListaImoveis imoveis={imoveis} condominios={condominios} />
-      </section>
-
-      <section className="sec">
-        <div className="sec-h"><h2>Histórico de despesas</h2><span className="rule" /></div>
-        <Historico despesas={historico} />
-      </section>
     </>
   );
 }

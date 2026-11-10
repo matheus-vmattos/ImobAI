@@ -38,7 +38,7 @@ export function Pendencias({ pendentes, condominios }: { pendentes: DespesaPorta
 function Item({ d }: { d: DespesaPortal }) {
   const aguardando = d.situacao === "aguardando";
   return (
-    <div className="pi">
+    <div className="pi" id={d.id}>
       <div>
         <div className="pi-t">{d.descricao}</div>
         <div className="pi-m">
@@ -49,7 +49,8 @@ function Item({ d }: { d: DespesaPortal }) {
         </div>
       </div>
       <div className="pi-v"><span className="v">{BRL(d.total)}</span><small>{d.regraTxt} · conta {BRL(d.valorTotal)}</small></div>
-      {d.unidades.length > 1 && <div className="chips">{d.unidades.map((u) => <span className="chip" key={u.imovelId}>{u.nome} · {BRL(u.valor)}</span>)}</div>}
+      {d.unidades.length > 1 && <div className="chips">{d.unidades.slice(0, 6).map((u) => <span className="chip" key={u.imovelId}>{u.nome} · {BRL(u.valor)}</span>)}
+        {d.unidades.length > 6 && <span className="chip">+{d.unidades.length - 6}</span>}</div>}
 
       {aguardando ? (
         <form action={responderDespesa} className="pi-a">

@@ -48,7 +48,7 @@ test("extrato: cobrança, depósito e abono zeram o saldo", () => {
   });
   assert.equal(e.saldo, 0);
   assert.equal(e.movimentos.length, 3);
-  assert.equal(e.movimentos.find((m) => m.tipo === "cobranca")!.descricao, "Cobrança 03/11 a 09/11 · 4 contas");
+  assert.equal(e.movimentos.find((m) => m.tipo === "cobranca")!.descricao, "Contas da semana 03/11 a 09/11 · 4 contas");
 });
 
 test("extrato do mesmo dia: abono, pagamento e cobrança nessa ordem", () => {

@@ -279,3 +279,11 @@ input::placeholder, textarea::placeholder { color: var(--dim) }
 }
 .flip { transform: rotate(180deg) }
 .mv .ic.bad { background: var(--bad-soft); color: var(--bad) }
+.mv .ic.accent { background: var(--accent-soft); color: var(--accent) }
+/* portal: unidades em cartões */
+.cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 8px }
+@media (max-width: 420px) { .cartoes { grid-template-columns: 1fr 1fr } }
+.cartao { display: grid; gap: 3px; padding: 12px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); text-decoration: none; min-width: 0 }
+.cartao:hover { border-color: var(--line-strong) }
+.cartao b { font-weight: 600; font-size: 14px } .cartao small { color: var(--muted); font-size: 12px }
+.cartao .s { display: flex; gap: 6px; align-items: center; font-size: 12.5px; margin-top: 2px }

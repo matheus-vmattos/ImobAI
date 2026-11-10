@@ -14,8 +14,8 @@ export default async function RepassePortal({ params }: { params: Promise<{ id: 
   return (
     <>
       <section className="hero">
-        <div className="crumbs"><Link href="/portal/repasses">Repasses</Link><span>/</span><span>{nomeMes(r.competencia.slice(0, 7))}</span></div>
-        <h1>Repasse de {nomeMes(r.competencia.slice(0, 7))}</h1>
+        <div className="crumbs"><Link href="/portal/extrato?ver=recebi">Extrato</Link><span>/</span><span>{nomeMes(r.competencia.slice(0, 7))}</span></div>
+        <h1>Você recebeu · {nomeMes(r.competencia.slice(0, 7))}</h1>
       </section>
       <div className="actions"><Imprimir /></div>
       <RelatorioRepasse r={r} />

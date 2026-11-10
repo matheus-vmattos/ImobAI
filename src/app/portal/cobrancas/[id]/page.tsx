@@ -24,7 +24,7 @@ export default async function CobrancaPortal({ params }: { params: Promise<{ id:
     <>
       <section className="hero">
         <div className="crumbs"><Link href="/portal/extrato">Extrato</Link><span>/</span><span>Cobrança</span></div>
-        <h1>Cobrança · {data(c.inicio).slice(0, 5)} a {data(c.fim).slice(0, 5)} <span className={`pill ${pill[0]}`} style={{ verticalAlign: "middle" }}>{pill[1]}</span></h1>
+        <h1>Contas da semana · {data(c.inicio).slice(0, 5)} a {data(c.fim).slice(0, 5)} <span className={`pill ${pill[0]}`} style={{ verticalAlign: "middle" }}>{pill[1]}</span></h1>
         <p className="muted">Vence em {data(c.vencimento)}</p>
       </section>
 
@@ -43,7 +43,7 @@ export default async function CobrancaPortal({ params }: { params: Promise<{ id:
         ))}
         <div className="mv" style={{ background: "var(--surface-2)" }}><span className="t"><b>Total</b></span><span className="v" style={{ fontSize: 17 }}>{BRL(c.total)}</span></div>
         {Number(c.pago) + Number(c.abonado) + Number(c.descontado) > 0 && (
-          <div className="mv"><span className="t"><b>Já pago</b><small>{Number(c.abonado) > 0 ? `inclui ${BRL(c.abonado)} abonados` : Number(c.descontado) > 0 ? "descontado no repasse" : " "}</small></span>
+          <div className="mv"><span className="t"><b>Já pago</b><small>{Number(c.abonado) > 0 ? `inclui ${BRL(c.abonado)} de diferença perdoada` : Number(c.descontado) > 0 ? "descontado do que você recebe" : " "}</small></span>
             <span className="v pos">{BRL(Number(c.pago) + Number(c.abonado) + Number(c.descontado))}</span></div>
         )}
       </div>

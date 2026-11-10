@@ -11,9 +11,9 @@ type ImRow = {
 type ItemRow = { id: string; proprietario_id: string; imovel_id: string; valor: number; taxa_adm: number; despesas: { descricao: string; status: string } };
 
 /** Prévia do repasse do mês para todos os proprietários (cliente admin). */
-export async function calcularPrevia(supabase: SupabaseClient, competencia: string) {
+export async function calcularPrevia(supabase: SupabaseClient, competencia: string, opts: { garantir?: boolean } = {}) {
   const { ini, fim } = mesDe(competencia);
-  await garantirAlugueis(supabase, competencia);
+  if (opts.garantir !== false) await garantirAlugueis(supabase, competencia);
   const [{ data: im }, { data: it }, { data: al }] = await Promise.all([
     supabase.from("imoveis")
       .select("id, identificacao, endereco, taxa_adm_pct, seguro_incendio_mensal, condominios(nome), imovel_proprietarios(proprietario_id, percentual), contratos(id, aluguel, inicio, fim, inquilino)")

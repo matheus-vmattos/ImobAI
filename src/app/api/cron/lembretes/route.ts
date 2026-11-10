@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     msgs.push({ evento: "lembrete_despesa", ref: i.despesa_id, para: p.email, assunto: `Despesa sem resposta: ${i.despesas.descricao}`,
       html: modelo(`Olá, ${primeiroNome(p.nome)}. Uma despesa ainda espera sua decisão.`, [
         `${i.despesas.descricao} — o prazo era ${data(i.despesas.prazo)}.`,
-      ], { texto: "Responder", href: link("/portal#pendencias") }) });
+      ], { texto: "Responder", href: link("/portal/decidir") }) });
   }
   await notificar(msgs);
   return NextResponse.json({ enviados: msgs.length, ...rotina });

@@ -86,12 +86,12 @@ export function extrato(o: {
   const m: Movimento[] = [];
   const dm = (iso: string) => iso.slice(8, 10) + "/" + iso.slice(5, 7);
   for (const c of o.cobrancas) {
-    m.push({ data: c.emitidaEm, tipo: "cobranca", descricao: `Cobrança ${dm(c.inicio)} a ${dm(c.fim)} · ${c.qtd} ${c.qtd === 1 ? "conta" : "contas"}`, valor: -c.total, ref: c.id });
-    if (c.abonado > 0) m.push({ data: c.quitadaEm ?? c.emitidaEm, tipo: "abono", descricao: "Diferença abonada", valor: c.abonado, ref: c.id });
-    if (c.descontado > 0) m.push({ data: c.quitadaEm ?? c.emitidaEm, tipo: "repasse", descricao: "Descontado no repasse", valor: c.descontado, ref: c.id });
+    m.push({ data: c.emitidaEm, tipo: "cobranca", descricao: `Contas da semana ${dm(c.inicio)} a ${dm(c.fim)} · ${c.qtd} ${c.qtd === 1 ? "conta" : "contas"}`, valor: -c.total, ref: c.id });
+    if (c.abonado > 0) m.push({ data: c.quitadaEm ?? c.emitidaEm, tipo: "abono", descricao: "Diferença perdoada", valor: c.abonado, ref: c.id });
+    if (c.descontado > 0) m.push({ data: c.quitadaEm ?? c.emitidaEm, tipo: "repasse", descricao: "Descontado do que você recebe", valor: c.descontado, ref: c.id });
   }
-  const FORMA: Record<string, string> = { deposito: "Depósito", pix: "Pix", transferencia: "Transferência", outro: "Pagamento" };
-  for (const p of o.pagamentos) m.push({ data: p.data, tipo: "pagamento", descricao: FORMA[p.forma] ?? "Pagamento", valor: p.valor, ref: p.id });
+  const FORMA: Record<string, string> = { deposito: "depósito", pix: "Pix", transferencia: "transferência", outro: "pagamento" };
+  for (const p of o.pagamentos) m.push({ data: p.data, tipo: "pagamento", descricao: `Você pagou · ${FORMA[p.forma] ?? "pagamento"}`, valor: p.valor, ref: p.id });
   // mais recente primeiro; no mesmo dia: abono/repasse, depois pagamento, depois a cobrança
   const ordem = { cobranca: 0, pagamento: 1, abono: 2, repasse: 2 };
   m.sort((a, b) => b.data.slice(0, 10).localeCompare(a.data.slice(0, 10)) || ordem[b.tipo] - ordem[a.tipo]);

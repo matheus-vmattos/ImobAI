@@ -29,7 +29,7 @@ export async function despesaEnviada(despesaId: string, proprietarios: string[])
       html: modelo(`Olá, ${primeiroNome(p.nome)}. Há uma despesa aguardando sua decisão.`, [
         `${d.descricao} — sua parte: ${BRL(v)}.`,
         d.prazo ? `Responda até ${data(d.prazo)}: descontar no repasse, reembolso ou eu mesmo pago.` : "Escolha: descontar no repasse, reembolso ou eu mesmo pago.",
-      ], { texto: "Ver e responder", href: link("/portal#pendencias") }),
+      ], { texto: "Ver e responder", href: link("/portal/decidir") }),
     }] : [];
   }));
 }
