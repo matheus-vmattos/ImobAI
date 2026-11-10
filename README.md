@@ -11,13 +11,23 @@ Banco de imóveis de proprietários com portal web. A imobiliária cadastra prop
 3. **Renovação** ✅: nos 90 dias antes do fim do contrato, o proprietário escolhe renovar pelo valor atual, propor novo valor ou não renovar (com comentário). A imobiliária vê as respostas e registra a renovação (novo contrato, +12 meses por padrão) ou a não renovação (imóvel entra em devolução)
 4. **Repasse e e-mails** ✅: relatório mensal por proprietário (aluguel − taxa de administração − seguro − despesas marcadas para desconto), fechado pela imobiliária e visível no portal, com impressão/PDF. Avisos por e-mail de despesa enviada, respostas do proprietário, reembolso confirmado, renovação e repasse fechado, mais lembretes diários (prazo vencido e renovação sem resposta)
 
-O protótipo visual está em `prototipo/index.html`.
+5. **Conta corrente do proprietário** ✅:
+   - **Cobrança semanal:** as contas que o proprietário paga por depósito ou Pix viram uma cobrança só por semana, enviada por e-mail. O proprietário paga com um ou mais comprovantes, a imobiliária confere e diferenças pequenas são abonadas (limite configurável). Pagamento parcial fica em aberto, sobra vira crédito, correções entram como ajuste na semana seguinte e cobrança vencida pode sair do repasse.
+   - **Extrato** no portal, com cobranças, pagamentos, abonos e saldo.
+   - **Aluguel recebido:** a imobiliária marca o que o inquilino pagou; o repasse usa só o recebido.
+   - **Quem paga:** condomínio ordinário e IPTU de imóvel locado ficam com o inquilino; condomínio que o dono paga direto só fica registrado.
+   - **Aprovação automática:** contas fixas e consertos até o limite de cada proprietário entram direto; orçamento e valores maiores pedem resposta.
+   - **Contas mensais** (zelador, lixo, água, luz) lançadas sozinhas e **lançamento de vários PDFs** de uma vez.
+   - **Terceiros** fora da carteira com a parte de cada um; **vários logins** por proprietário e **pagador do grupo** (ex.: o irmão sócio).
+   - **IPTU e nº de cliente** de energia e água no imóvel do portal (do condomínio ou do próprio imóvel).
+
+O design segue `prototipo/v2/` (maquetes em HTML; gere os `.html` a partir dos `.src.html`). O protótipo antigo está em `prototipo/index.html`.
 
 ## Como rodar
 
 ### 1. Criar o projeto no Supabase
 1. Crie um projeto em https://supabase.com (plano gratuito serve).
-2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…` a `0004_…`). O `0002` cria o bucket privado `despesas` para os PDFs.
+2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…` a `0006_…`). O `0002` cria o bucket privado `despesas` para os PDFs e o `0005`, o bucket `comprovantes`.
 3. (Opcional) Rode `supabase/seed.sql` para ter dados de exemplo.
 4. Em **Authentication → URL Configuration**, coloque a URL do app em *Site URL* e adicione `https://SEU-APP/auth/confirm` em *Redirect URLs* (e `http://localhost:3000/auth/confirm` para testar local).
 5. (Opcional) Os e-mails padrão de convite e de redefinição de senha já funcionam: o app abre a sessão em `/auth/sessao`. Para personalizá-los, configure um SMTP próprio (exigido no plano grátis) e, em **Authentication → Email Templates**, use o link:
@@ -51,7 +61,11 @@ npm run dev
 ### E-mails
 Os avisos usam o [Resend](https://resend.com). Configure `RESEND_API_KEY` e `EMAIL_FROM` (domínio verificado no Resend). Sem elas, nada é enviado, mas tudo fica registrado em **Admin → E-mails**, onde dá para ver cada mensagem.
 - `EMAIL_IMOBILIARIA`: para onde vão os avisos à imobiliária (vazio = e-mails dos logins admin).
-- `CRON_SECRET`: protege `/api/cron/lembretes`. Na Vercel, o `vercel.json` já agenda a rota uma vez por dia; cada lembrete é enviado uma vez só.
+- `CRON_SECRET`: protege `/api/cron/lembretes`, a rotina diária. Na Vercel, o `vercel.json` já agenda a rota uma vez por dia. Ela lança as contas mensais, gera a cobrança semanal no dia configurado e manda os lembretes (cada um uma vez só).
+- `NOME_IMOBILIARIA`: nome exibido no menu (ex.: "Mattos Imóveis").
+
+### Cobrança semanal
+Em **Admin → Configurações**, preencha favorecido, conta e Pix (aparecem na cobrança), o dia da semana de gerar, o prazo e até quanto abonar. No cadastro de cada proprietário: forma de pagamento (cobrança semanal ou desconto no repasse), limite de aprovação automática, pagador do grupo e se a cobrança vencida sai do repasse.
 
 ### Repasse
 Em **Admin → Repasses**, escolha o mês, confira a prévia de cada proprietário e clique em **Fechar repasse**. O relatório fica congelado, as despesas descontadas saem das pendências e o proprietário recebe o relatório por e-mail. **Reabrir** desfaz o fechamento. O aluguel do mês vem do contrato vigente no mês (se houve renovação no meio do mês, vale o novo).
@@ -63,7 +77,7 @@ No cadastro do proprietário, preencha o e-mail e clique em **Enviar convite**. 
 ```bash
 npm test
 ```
-Cobre o cálculo do rateio (`src/lib/rateio.ts`), do repasse (`src/lib/repasse.ts`) e as datas da renovação.
+Cobre o cálculo do rateio (`src/lib/rateio.ts`), do repasse (`src/lib/repasse.ts`), da conta corrente (`src/lib/contaCorrente.ts`: quem paga, decisão automática, alocação de pagamentos, abono e extrato) e as datas da renovação.
 
 ## Permissões
 Todas as tabelas usam Row Level Security:
