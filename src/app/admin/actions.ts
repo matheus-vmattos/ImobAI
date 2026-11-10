@@ -157,6 +157,27 @@ export async function excluirCondominio(form: FormData) {
   voltar("/admin/condominios", { ok: "Condomínio excluído. Os imóveis dele viraram avulsos." });
 }
 
+export async function salvarTerceiro(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const condominio_id = String(form.get("condominio_id"));
+  const back = `/admin/condominios/${condominio_id}`;
+  const { error } = await supabase.from("terceiros").insert({
+    condominio_id, nome: texto(form, "nome") ?? "Terceiro", contato: texto(form, "contato"), cotas: numero(form, "cotas") ?? 1,
+  });
+  if (error) voltar(back, { erro: error.message });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: "Unidade de terceiro adicionada." });
+}
+
+export async function excluirTerceiro(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const back = `/admin/condominios/${String(form.get("condominio_id"))}`;
+  const { error } = await supabase.from("terceiros").delete().eq("id", String(form.get("id")));
+  if (error) voltar(back, { erro: error.message });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: "Unidade de terceiro removida." });
+}
+
 /* ---------- imóveis ---------- */
 
 export async function salvarImovel(form: FormData) {

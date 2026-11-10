@@ -12,7 +12,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { carregarCarteira } from "./dados";
 import { aplicarDecisoesAutomaticas, responsaveis } from "@/lib/decisoes";
 import { estornarItens } from "@/lib/cobrancas";
-import { enviarDespesa as enviarLancamento, gravarItens, guardarPdf, lancar, ratear } from "@/lib/lancamento";
+import { enviarDespesa as enviarLancamento, gravarItens, gravarTerceiros, guardarPdf, lancar, ratear } from "@/lib/lancamento";
 
 const voltar = (path: string, params: Record<string, string>): never => redirect(`${path}?${new URLSearchParams(params)}`);
 const BUCKET = "despesas";
@@ -101,6 +101,7 @@ export async function lancarDespesa(form: FormData) {
       await supabase.from("despesas").delete().eq("id", id);
       throw new Error(e2.message);
     }
+    await gravarTerceiros(supabase, id, condominio_id, r.fora, { regra, divisor, total });
   } catch (e) {
     voltar(back, { erro: e instanceof Error ? e.message : "Não foi possível lançar a despesa." });
   }
@@ -172,6 +173,7 @@ export async function completarDespesa(form: FormData) {
     const { error } = await supabase.from("despesas").update({ valor_total: valor, valor_fora: r.fora, regra, divisor, unidades, pdf_path, prazo: texto(form, "prazo") }).eq("id", id);
     if (error) throw new Error(error.message);
     await gravarItens(supabase, id, d.tipo, r.itens);
+    await gravarTerceiros(supabase, id, d.condominio_id, r.fora, { regra, divisor, total: valor });
     const precisam = await enviarLancamento(supabase, id);
     if (precisam.length) after(() => avisos.despesaEnviada(id, precisam));
   } catch (e) { voltar(back, { erro: e instanceof Error ? e.message : "Não foi possível enviar." }); }
@@ -211,4 +213,14 @@ export async function lancarLote(form: FormData) {
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar("/admin/despesas", { ok: `${n} despesas lançadas e enviadas.` });
+}
+
+export async function terceiroRecebido(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const back = String(form.get("voltar"));
+  const recebido = form.get("recebido") === "1";
+  const { error } = await supabase.from("despesa_terceiros").update({ recebido_em: recebido ? new Date().toISOString().slice(0, 10) : null }).eq("id", String(form.get("id")));
+  if (error) voltar(back, { erro: error.message });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: recebido ? "Recebimento do terceiro registrado." : "Recebimento desfeito." });
 }

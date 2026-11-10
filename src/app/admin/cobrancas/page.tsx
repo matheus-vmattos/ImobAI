@@ -15,14 +15,16 @@ export default async function Cobrancas({ searchParams }: { searchParams: Promis
   const { ok, erro, ver } = await searchParams;
   const { supabase } = await exigirAdmin();
   const desde = new Date(Date.now() - 45 * 864e5).toISOString().slice(0, 10);
-  const [{ data: cs }, { data: ps }, { data: props }, { data: pend }] = await Promise.all([
+  const [{ data: cs }, { data: ps }, { data: props }, { data: pend }, { data: ter }] = await Promise.all([
     supabase.from("cobrancas").select("id, pagador_id, emitida_em, inicio, fim, vencimento, total, pago, abonado, descontado, status, linhas, proprietarios(nome)")
       .or(`status.eq.aberta,emitida_em.gte.${desde}`).order("emitida_em", { ascending: false }),
     supabase.from("pagamentos").select("id, pagador_id, valor, data, forma, created_at, comprovantes, proprietarios(nome)").eq("status", "informado").order("created_at"),
     supabase.from("proprietarios").select("id, nome").is("pagador_id", null).order("nome"),
     supabase.from("despesa_itens").select("valor, taxa_adm, despesas!inner(status)", { count: "exact" })
       .eq("decisao", "reembolso").eq("responsavel", "proprietario").is("cobranca_id", null).eq("despesas.status", "enviada"),
+    supabase.from("despesa_terceiros").select("id, nome, valor, despesas!inner(id, descricao, status, condominios(nome))").is("recebido_em", null).eq("despesas.status", "enviada"),
   ]);
+  const terceiros = (ter ?? []) as unknown as { id: string; nome: string; valor: number; despesas: { id: string; descricao: string; condominios: { nome: string } | null } }[];
   const cobrancas = (cs ?? []) as unknown as Cob[];
   const pagamentos = (ps ?? []) as unknown as Pag[];
   const hoje = new Date().toISOString().slice(0, 10);
@@ -118,6 +120,18 @@ export default async function Cobrancas({ searchParams }: { searchParams: Promis
           </table></div>
         ) : <div className="empty">{filtro === "abertas" ? "Nenhuma cobrança em aberto." : "Nenhuma cobrança neste filtro."}</div>}
       </section>
+      {terceiros.length > 0 && (
+        <section className="sec">
+          <div className="sec-h"><h2>A receber de terceiros</h2><span className="count">{BRL(terceiros.reduce((a, t) => a + Number(t.valor), 0))}</span></div>
+          <div className="box tbl-wrap"><table>
+            <thead><tr><th>Terceiro</th><th>Conta</th><th>Condomínio</th><th className="r">Parte</th><th /></tr></thead>
+            <tbody>{terceiros.map((t) => (
+              <tr key={t.id}><td>{t.nome}</td><td><Link className="rowlink" href={`/admin/despesas/${t.despesas.id}`}>{t.despesas.descricao}</Link></td>
+                <td className="muted">{t.despesas.condominios?.nome}</td><td className="r num">{BRL(t.valor)}</td><td className="go">›</td></tr>
+            ))}</tbody>
+          </table></div>
+        </section>
+      )}
     </>
   );
 }

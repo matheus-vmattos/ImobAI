@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { carregarCarteira } from "@/app/admin/despesas/dados";
 import { aplicarDecisoesAutomaticas, responsaveis } from "@/lib/decisoes";
-import { calcularRateio, type Regra, type UnidadeRateio } from "@/lib/rateio";
+import { calcularRateio, distribuir, type Regra, type UnidadeRateio } from "@/lib/rateio";
 import { createServiceClient } from "@/lib/supabase/server";
 
 /** Lançamento de despesa fora do formulário principal: contas mensais, lote de PDFs e rascunho completado. */
@@ -89,6 +89,23 @@ export async function lancar(db: SupabaseClient, o: {
   });
   if (error) throw new Error(error.message);
   try { await gravarItens(db, id, o.tipo, r.itens); } catch (e) { await db.from("despesas").delete().eq("id", id); throw e; }
+  await gravarTerceiros(db, id, o.destino.imovelId ? null : o.destino.condominioId, r.fora, { regra, divisor, total: o.total });
   const precisam = await enviarDespesa(db, id);
   return { id, precisam };
+}
+
+/** Parte das unidades fora da carteira, por terceiro cadastrado no condomínio. Com rateio por cotas,
+ *  cada um paga total × cotas ÷ divisor (sem passar do que ficou fora); nas outras regras, a parte de fora
+ *  é dividida entre eles pelas cotas. */
+export async function gravarTerceiros(db: SupabaseClient, despesaId: string, condominioId: string | null, valorFora: number,
+  rateio?: { regra: string; divisor: number | null; total: number }) {
+  await db.from("despesa_terceiros").delete().eq("despesa_id", despesaId);
+  if (!condominioId || !(valorFora > 0)) return;
+  const { data: ts } = await db.from("terceiros").select("id, nome, cotas").eq("condominio_id", condominioId);
+  if (!ts?.length) return;
+  const cotas = ts.map((t) => Number(t.cotas));
+  const porCota = rateio?.regra === "cotas" && Number(rateio.divisor) > 0;
+  const base = porCota ? Math.min(valorFora, (rateio!.total * cotas.reduce((a, c) => a + c, 0)) / Number(rateio!.divisor)) : valorFora;
+  const partes = distribuir(base, cotas);
+  await db.from("despesa_terceiros").insert(ts.map((t, i) => ({ despesa_id: despesaId, terceiro_id: t.id, nome: t.nome, valor: partes[i] })));
 }

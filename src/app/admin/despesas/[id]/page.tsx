@@ -4,7 +4,7 @@ import { Aviso } from "@/components/Aviso";
 import { exigirAdmin } from "@/lib/auth";
 import { BRL, data } from "@/lib/format";
 import { SITUACAO_LABEL, situacao, TIPO_LABEL, type Decisao, type StatusReembolso, type TipoDespesa } from "@/lib/types";
-import { completarDespesa, confirmarReembolso, enviarDespesa, excluirDespesa } from "../actions";
+import { completarDespesa, confirmarReembolso, enviarDespesa, excluirDespesa, terceiroRecebido } from "../actions";
 
 type Despesa = {
   id: string; descricao: string; tipo: TipoDespesa; competencia: string | null; valor_total: number; regra: string; divisor: number | null;
@@ -24,9 +24,10 @@ export default async function DespesaAdmin({ params, searchParams }: {
 }) {
   const [{ id }, { ok, erro }] = await Promise.all([params, searchParams]);
   const { supabase } = await exigirAdmin();
-  const [{ data: d }, { data: it }] = await Promise.all([
+  const [{ data: d }, { data: it }, { data: ter }] = await Promise.all([
     supabase.from("despesas").select("*, condominios(nome), imoveis(identificacao, endereco)").eq("id", id).maybeSingle<Despesa>(),
     supabase.from("despesa_itens").select("*, imoveis(identificacao), proprietarios(nome)").eq("despesa_id", id),
+    supabase.from("despesa_terceiros").select("id, nome, valor, recebido_em").eq("despesa_id", id).order("nome"),
   ]);
   if (!d) notFound();
   const itens = ((it ?? []) as Item[]).sort((a, b) => a.proprietarios.nome.localeCompare(b.proprietarios.nome) || a.imoveis.identificacao.localeCompare(b.imoveis.identificacao));
@@ -102,6 +103,22 @@ export default async function DespesaAdmin({ params, searchParams }: {
           })}</tbody>
         </table></div>
       </section>
+      {(ter ?? []).length > 0 && (
+        <section className="sec">
+          <div className="sec-h"><h2>Unidades de terceiros</h2><span className="count">{(ter ?? []).length}</span></div>
+          <div className="box tbl-wrap"><table>
+            <thead><tr><th>Terceiro</th><th className="r">Parte</th><th>Situação</th><th /></tr></thead>
+            <tbody>{(ter ?? []).map((t) => (
+              <tr key={t.id}>
+                <td>{t.nome}</td><td className="r num">{BRL(t.valor)}</td>
+                <td>{t.recebido_em ? <span className="pill ok">Recebido {data(t.recebido_em)}</span> : <span className="pill warn">A receber</span>}</td>
+                <td className="r"><form action={terceiroRecebido}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="voltar" value={`/admin/despesas/${d.id}`} />
+                  <input type="hidden" name="recebido" value={t.recebido_em ? "0" : "1"} /><button className="btn ghost sm">{t.recebido_em ? "Desfazer" : "Marcar recebido"}</button></form></td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        </section>
+      )}
     </>
   );
 }

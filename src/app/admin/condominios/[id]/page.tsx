@@ -4,7 +4,7 @@ import { Aviso } from "@/components/Aviso";
 import { StatusPill } from "@/components/StatusPill";
 import { exigirAdmin } from "@/lib/auth";
 import type { Condominio, Imovel } from "@/lib/types";
-import { excluirCondominio, salvarCondominio } from "../../actions";
+import { excluirCondominio, excluirTerceiro, salvarCondominio, salvarTerceiro } from "../../actions";
 
 type Unidade = Pick<Imovel, "id" | "identificacao" | "status" | "cotas"> & { imovel_proprietarios: { proprietarios: { nome: string } }[] };
 
@@ -13,9 +13,10 @@ export default async function EditarCondominio({ params, searchParams }: {
 }) {
   const [{ id }, { ok, erro }] = await Promise.all([params, searchParams]);
   const { supabase } = await exigirAdmin();
-  const [{ data: c }, { data: un }] = await Promise.all([
+  const [{ data: c }, { data: un }, { data: ter }] = await Promise.all([
     supabase.from("condominios").select("*").eq("id", id).single<Condominio>(),
     supabase.from("imoveis").select("id, identificacao, status, cotas, imovel_proprietarios(proprietarios(nome))").eq("condominio_id", id).order("identificacao"),
+    supabase.from("terceiros").select("id, nome, contato, cotas").eq("condominio_id", id).order("nome"),
   ]);
   if (!c) notFound();
   const unidades = (un ?? []) as unknown as Unidade[];
@@ -71,6 +72,24 @@ export default async function EditarCondominio({ params, searchParams }: {
               </table></div>
             ) : <p className="muted small" style={{ margin: 0 }}>Nenhuma unidade cadastrada.</p>}
             <Link href={`/admin/imoveis/novo?condominio=${c.id}`} className="btn sm" style={{ justifySelf: "start" }}>Nova unidade neste condomínio</Link>
+          </div>
+          <div className="panel">
+            <div className="sec-h"><h2>Unidades de terceiros</h2><span className="count">{(ter ?? []).length}</span></div>
+            <p className="small muted" style={{ margin: 0 }}>Lojas e unidades que não são da carteira. A parte delas nas contas rateadas fica registrada como “a receber”.</p>
+            {(ter ?? []).map((t) => (
+              <form key={t.id} action={excluirTerceiro} className="actions">
+                <input type="hidden" name="id" value={t.id} /><input type="hidden" name="condominio_id" value={c.id} />
+                <span style={{ flex: 1 }}>{t.nome}{t.contato && <span className="muted small"> · {t.contato}</span>}</span>
+                <span className="num muted small">{Number(t.cotas)} cota(s)</span><button className="btn ghost sm">Remover</button>
+              </form>
+            ))}
+            <form action={salvarTerceiro} className="inline-form">
+              <input type="hidden" name="condominio_id" value={c.id} />
+              <div className="field"><label className="label" htmlFor="t_nome">Nome</label><input id="t_nome" name="nome" required placeholder="Loja 1 · Farmácia" /></div>
+              <div className="field" style={{ flex: "0 1 110px" }}><label className="label" htmlFor="t_cotas">Cotas</label><input id="t_cotas" name="cotas" inputMode="decimal" defaultValue={1} /></div>
+              <div className="field"><label className="label" htmlFor="t_contato">Contato</label><input id="t_contato" name="contato" /></div>
+              <button className="btn sm" style={{ height: 38 }}>Adicionar</button>
+            </form>
           </div>
           <form action={excluirCondominio}>
             <input type="hidden" name="id" value={c.id} />
