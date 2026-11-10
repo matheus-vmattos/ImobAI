@@ -278,3 +278,4 @@ input::placeholder, textarea::placeholder { color: var(--dim) }
   .kpi, .box, .panel { break-inside: avoid }
 }
 .flip { transform: rotate(180deg) }
+.mv .ic.bad { background: var(--bad-soft); color: var(--bad) }

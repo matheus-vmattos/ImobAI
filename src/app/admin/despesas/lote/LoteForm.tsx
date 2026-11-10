@@ -7,11 +7,14 @@ import { lancarLote } from "../actions";
 type Imovel = { id: string; rotulo: string; identificacao: string };
 const normal = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
-/** Adivinha o imóvel pelo nome do arquivo (ex.: "Boleto S-306.pdf" → unidade S-306). */
+/** Adivinha o imóvel pelo nome do arquivo (ex.: "Boleto S-306.pdf" → unidade S-306).
+ *  Vale a identificação mais específica: "Casa 01" ganha de "Casa"; empate continua em branco. */
 const adivinhar = (arquivo: string, imoveis: Imovel[]) => {
   const n = ` ${normal(arquivo)} `;
-  const achados = imoveis.filter((i) => n.includes(` ${normal(i.identificacao)} `));
-  return achados.length === 1 ? achados[0].id : "";
+  const achados = imoveis.filter((i) => normal(i.identificacao) && n.includes(` ${normal(i.identificacao)} `));
+  const maior = Math.max(0, ...achados.map((i) => normal(i.identificacao).length));
+  const melhores = achados.filter((i) => normal(i.identificacao).length === maior);
+  return melhores.length === 1 ? melhores[0].id : "";
 };
 
 export function LoteForm({ imoveis }: { imoveis: Imovel[] }) {

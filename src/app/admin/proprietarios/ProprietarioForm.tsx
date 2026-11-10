@@ -31,7 +31,7 @@ export function ProprietarioForm({ p, outros = [] }: { p?: Proprietario; outros?
           </select></div>
         <div className="field"><label className="label" htmlFor="aprova_ate">Aprovação automática até (R$)</label>
           <input id="aprova_ate" name="aprova_ate" inputMode="decimal" defaultValue={p?.aprova_ate ?? 300} />
-          <small>Contas fixas e consertos até este valor não pedem resposta.</small></div>
+          <small>Contas fixas (condomínio, IPTU, seguro, mensais) sempre entram direto; consertos até este valor também.</small></div>
       </div>
       <div className="field"><label className="label" htmlFor="pagador_id">Quem paga as cobranças</label>
         <select id="pagador_id" name="pagador_id" defaultValue={p?.pagador_id ?? ""}>

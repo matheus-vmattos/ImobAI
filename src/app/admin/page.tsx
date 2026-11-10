@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { exigirAdmin } from "@/lib/auth";
 import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
-import { confirmarReembolso } from "./despesas/actions";
+import { Icon } from "@/components/Icon";
 import { RENOVACAO_LABEL, type Imovel, type Renovacao } from "@/lib/types";
 
 type ContratoLista = {
@@ -11,16 +11,19 @@ type ContratoLista = {
 
 export default async function AdminHome() {
   const { supabase } = await exigirAdmin();
-  const [{ data: imoveis }, { count: nProp }, { count: nCond }, { data: contratos }, { data: reemb }, { data: rens }] = await Promise.all([
+  const hoje = new Date().toISOString().slice(0, 10);
+  const [{ data: imoveis }, { count: nProp }, { count: nCond }, { data: contratos }, { data: pags }, { data: rens }, { data: atrasadas }, { data: alAtras }, { count: rascunhos }] = await Promise.all([
     supabase.from("imoveis").select("status"),
     supabase.from("proprietarios").select("*", { count: "exact", head: true }),
     supabase.from("condominios").select("*", { count: "exact", head: true }),
     supabase.from("contratos")
       .select("id, imovel_id, inquilino, aluguel, fim, entrega_chaves_prevista, imoveis(identificacao, status, condominios(nome))")
       .eq("ativo", true).order("fim"),
-    supabase.from("despesa_itens").select("despesa_id, proprietario_id, valor, taxa_adm, reembolso_informado_em, despesas(descricao), proprietarios(nome)")
-      .eq("reembolso", "informado").order("reembolso_informado_em"),
+    supabase.from("pagamentos").select("id, valor, created_at, proprietarios(nome)").eq("status", "informado").order("created_at"),
     supabase.from("renovacoes").select("contrato_id, decisao, valor_proposto").is("concluida_em", null),
+    supabase.from("cobrancas").select("total, pago, abonado, descontado").eq("status", "aberta").lt("vencimento", hoje),
+    supabase.from("alugueis").select("valor").is("recebido_em", null).lt("vencimento", hoje).gte("competencia", hoje.slice(0, 8) + "01"),
+    supabase.from("despesas").select("*", { count: "exact", head: true }).eq("status", "rascunho").eq("valor_total", 0),
   ]);
   const respostas = (rens ?? []) as Pick<Renovacao, "contrato_id" | "decisao" | "valor_proposto">[];
   const resposta = (contratoId: string) => {
@@ -28,15 +31,14 @@ export default async function AdminHome() {
     if (!rs.length) return <span className="pill aguardando">Aguardando</span>;
     return rs.map((r, i) => <span key={i} className={`pill renov-${r.decisao}`} style={{ marginRight: 4 }}>{RENOVACAO_LABEL[r.decisao]}{r.valor_proposto ? ` · ${BRL0(r.valor_proposto)}` : ""}</span>);
   };
-  // reembolsos informados pelo proprietário, um por (despesa, proprietário)
-  const aConfirmar = new Map<string, { despesa_id: string; proprietario_id: string; descricao: string; nome: string; total: number; em: string | null }>();
-  ((reemb ?? []) as unknown as { despesa_id: string; proprietario_id: string; valor: number; taxa_adm: number; reembolso_informado_em: string | null; despesas: { descricao: string }; proprietarios: { nome: string } }[])
-    .forEach((r) => {
-      const k = r.despesa_id + r.proprietario_id;
-      const atual = aConfirmar.get(k);
-      aConfirmar.set(k, { despesa_id: r.despesa_id, proprietario_id: r.proprietario_id, descricao: r.despesas.descricao, nome: r.proprietarios.nome,
-        total: (atual?.total ?? 0) + Number(r.valor) + Number(r.taxa_adm), em: r.reembolso_informado_em });
-    });
+  const comprovantes = (pags ?? []) as unknown as { id: string; valor: number; created_at: string; proprietarios: { nome: string } }[];
+  const atrasado = (atrasadas ?? []).reduce((a, c) => a + Number(c.total) - Number(c.pago) - Number(c.abonado) - Number(c.descontado), 0);
+  const tarefas = [
+    ...comprovantes.map((p) => ({ k: p.id, ic: "coins", cls: "dev", t: `${p.proprietarios.nome} enviou comprovante`, s: `${BRL(p.valor)} · ${data(p.created_at)}`, href: `/admin/cobrancas/pagamento/${p.id}`, acao: "Conferir" })),
+    ...((atrasadas ?? []).length ? [{ k: "cob", ic: "alert", cls: "bad", t: `${(atrasadas ?? []).length} cobrança(s) vencida(s)`, s: `${BRL(atrasado)} em aberto`, href: "/admin/cobrancas?ver=atrasadas", acao: "Ver" }] : []),
+    ...((alAtras ?? []).length ? [{ k: "alu", ic: "bank", cls: "warn", t: `${(alAtras ?? []).length} aluguel(éis) atrasado(s) neste mês`, s: `${BRL((alAtras ?? []).reduce((a, x) => a + Number(x.valor), 0))} sem pagamento do inquilino`, href: "/admin/alugueis?ver=atrasado", acao: "Ver" }] : []),
+    ...(rascunhos ? [{ k: "ras", ic: "repeat", cls: "warn", t: `${rascunhos} conta(s) mensal(is) esperando valor`, s: "água, luz e outras de valor variável", href: "/admin/despesas/recorrentes", acao: "Informar" }] : []),
+  ];
   const cs = (contratos ?? []) as unknown as ContratoLista[];
   const cnt = (s: string) => (imoveis ?? []).filter((i) => i.status === s).length;
   const vencendo = cs.filter((c) => c.imoveis?.status === "locado" && diasAte(c.fim) <= RENOVACAO_DIAS);
@@ -59,22 +61,16 @@ export default async function AdminHome() {
       </section>
 
       <section className="sec">
-        <div className="sec-h"><h2>Reembolsos para confirmar</h2><span className="count">{aConfirmar.size}</span><span className="rule" /></div>
-        {aConfirmar.size ? (
-          <div className="box tbl-wrap"><table>
-            <thead><tr><th>Despesa</th><th>Proprietário</th><th className="r">Valor</th><th>Informado em</th><th /></tr></thead>
-            <tbody>{[...aConfirmar.values()].map((r) => (
-              <tr key={r.despesa_id + r.proprietario_id}>
-                <td><Link className="rowlink" href={`/admin/despesas/${r.despesa_id}`}>{r.descricao}</Link></td><td>{r.nome}</td>
-                <td className="r num">{BRL(r.total)}</td><td className="num muted">{data(r.em)}</td>
-                <td><form action={confirmarReembolso}>
-                  <input type="hidden" name="despesa_id" value={r.despesa_id} /><input type="hidden" name="proprietario_id" value={r.proprietario_id} />
-                  <input type="hidden" name="voltar" value="/admin" />
-                  <button className="btn sm primary">Confirmar recebimento</button></form></td>
-              </tr>
-            ))}</tbody>
-          </table></div>
-        ) : <div className="empty">Nenhum reembolso aguardando confirmação.</div>}
+        <div className="sec-h"><h2>Precisa de você</h2><span className="count">{tarefas.length}</span></div>
+        {tarefas.length ? (
+          <div className="box">{tarefas.map((x) => (
+            <Link key={x.k} href={x.href} className="mv" style={{ textDecoration: "none" }}>
+              <span className={`ic ${x.cls}`}><Icon name={x.ic} /></span>
+              <span className="t"><b>{x.t}</b><small>{x.s}</small></span>
+              <span className="btn sm">{x.acao}</span>
+            </Link>
+          ))}</div>
+        ) : <div className="empty">Nada pendente. Tudo em dia.</div>}
       </section>
 
       <section className="sec">

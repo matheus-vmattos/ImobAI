@@ -34,15 +34,22 @@ export async function gerarCobrancas(db: SupabaseClient, emissao = hoje(), soPag
   ]);
   const grupos = new Map<string, { linhas: LinhaCobranca[]; itens: string[]; ajustes: string[] }>();
   const de = (g: string) => { if (!grupos.has(g)) grupos.set(g, { linhas: [], itens: [], ajustes: [] }); return grupos.get(g)!; };
+  // uma linha por conta e proprietário (a conta rateada em 20 unidades vira uma linha com "20 unidades")
+  const porConta = new Map<string, ItemPend[]>();
   for (const i of (its ?? []) as unknown as ItemPend[]) {
-    const pagador = i.proprietarios.pagador_id ?? i.proprietario_id;
-    const g = de(pagador);
+    const k = `${i.proprietarios.pagador_id ?? i.proprietario_id}|${i.despesas.id}|${i.proprietario_id}`;
+    porConta.set(k, [...(porConta.get(k) ?? []), i]);
+  }
+  for (const [k, lista] of porConta) {
+    const i = lista[0];
+    const g = de(k.split("|")[0]);
+    const lugar = i.imoveis.condominios?.nome ?? i.imoveis.endereco;
     g.linhas.push({
-      tipo: "despesa", ref: i.id, descricao: i.despesas.descricao, despesaId: i.despesas.id, temPdf: !!i.despesas.pdf_path,
-      onde: [i.imoveis.condominios?.nome ?? i.imoveis.endereco, i.imoveis.identificacao].filter(Boolean).join(" · "),
-      proprietario: i.proprietarios.nome, valor: centavos(Number(i.valor) + Number(i.taxa_adm)),
+      tipo: "despesa", ref: lista.map((x) => x.id).join(","), descricao: i.despesas.descricao, despesaId: i.despesas.id, temPdf: !!i.despesas.pdf_path,
+      onde: [lugar, lista.length > 1 ? `${lista.length} unidades` : i.imoveis.identificacao].filter(Boolean).join(" · "),
+      proprietario: i.proprietarios.nome, valor: centavos(lista.reduce((a, x) => a + Number(x.valor) + Number(x.taxa_adm), 0)),
     });
-    g.itens.push(i.id);
+    g.itens.push(...lista.map((x) => x.id));
   }
   for (const a of ajs ?? []) {
     const g = de(a.pagador_id as string);
@@ -149,9 +156,18 @@ export async function lancarAjuste(db: SupabaseClient, pagador: string, descrica
 export async function estornarItens(db: SupabaseClient, itemIds: string[], motivo: string, userId?: string) {
   if (!itemIds.length) return 0;
   const { data } = await db.from("despesa_itens").select("id, valor, taxa_adm, cobranca_id, proprietarios(pagador_id, id), despesas(descricao)").in("id", itemIds).not("cobranca_id", "is", null);
-  let n = 0;
+  // um crédito por conta e pagador (a linha "20 unidades" vira um estorno só)
+  const grupos = new Map<string, { pagador: string; descricao: string; valor: number; item: string }>();
   for (const i of (data ?? []) as unknown as { id: string; valor: number; taxa_adm: number; proprietarios: { id: string; pagador_id: string | null }; despesas: { descricao: string } }[]) {
-    await lancarAjuste(db, i.proprietarios.pagador_id ?? i.proprietarios.id, `Estorno: ${i.despesas.descricao} (${motivo})`, -(Number(i.valor) + Number(i.taxa_adm)), userId, i.id);
+    const pagador = i.proprietarios.pagador_id ?? i.proprietarios.id;
+    const k = `${pagador}|${i.despesas.descricao}`;
+    const g = grupos.get(k) ?? { pagador, descricao: i.despesas.descricao, valor: 0, item: i.id };
+    g.valor += Number(i.valor) + Number(i.taxa_adm);
+    grupos.set(k, g);
+  }
+  let n = 0;
+  for (const g of grupos.values()) {
+    await lancarAjuste(db, g.pagador, `Estorno: ${g.descricao} (${motivo})`, -g.valor, userId, g.item);
     n++;
   }
   return n;

@@ -18,8 +18,12 @@ export function responsavelPor(tipo: string, statusImovel: string, condominioPag
 /* ---------- decisão automática ---------- */
 export type Decisao = "desconto" | "reembolso" | "proprio";
 
+/** Tipos que são conta fixa (o proprietário não tem o que aprovar): entram direto, sem olhar o limite. */
+export const TIPOS_FIXOS = ["fixa", "condominio", "condominio_extra", "iptu", "seguro_incendio"];
+
 /** Conta que não precisa de aprovação já entra decidida pela forma padrão do proprietário:
- *  cobrança semanal ("reembolso") ou desconto no repasse. Devolve null quando precisa de resposta. */
+ *  cobrança semanal ("reembolso") ou desconto no repasse. Devolve null quando precisa de resposta.
+ *  `recorrente` vale para conta mensal e para os tipos fixos. */
 export function decisaoAutomatica(o: {
   responsavel: Responsavel; requerAprovacao: boolean; valorDoProprietario: number;
   aprovaAte: number; formaPadrao: "cobranca" | "repasse"; recorrente: boolean;

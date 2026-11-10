@@ -91,7 +91,8 @@ export async function estornarLinha(form: FormData) {
   const { supabase, user } = await exigirAdmin();
   const back = String(form.get("voltar"));
   try {
-    const n = await estornarItens(supabase, [String(form.get("item_id"))], texto(form, "motivo") ?? "corrigido pela imobiliária", user.id);
+    const ids = String(form.get("item_id")).split(",").filter(Boolean);
+    const n = await estornarItens(supabase, ids, texto(form, "motivo") ?? "corrigido pela imobiliária", user.id);
     if (!n) throw new Error("Esta conta não está em nenhuma cobrança.");
   } catch (e) { voltar(back, { erro: msg(e) }); }
   atualizar();
