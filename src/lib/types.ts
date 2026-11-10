@@ -33,6 +33,9 @@ export type Condominio = {
   cotas_padrao: number | null;
   regra_padrao: string | null;
   observacoes: string | null;
+  iptu_inscricao: string | null;
+  energia_cliente: string | null;
+  agua_cliente: string | null;
 };
 
 export type Imovel = {
@@ -49,6 +52,9 @@ export type Imovel = {
   motivo_indisponivel: string | null;
   observacoes: string | null;
   condominio_pago_por: "imobiliaria" | "proprietario";
+  iptu_inscricao: string | null;
+  energia_cliente: string | null;
+  agua_cliente: string | null;
 };
 
 export type Contrato = {

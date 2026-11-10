@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Copiar } from "@/components/Copiar";
 import { StatusPill } from "@/components/StatusPill";
 import { getSessao } from "@/lib/auth";
 import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
@@ -12,11 +13,11 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const { supabase, proprietarioIds } = await getSessao();
   const { data: i } = await supabase.from("imoveis")
-    .select("*, condominios(nome, endereco), contratos(*), imovel_proprietarios(percentual, proprietario_id)")
+    .select("*, condominios(nome, endereco, iptu_inscricao, energia_cliente, agua_cliente), contratos(*), imovel_proprietarios(percentual, proprietario_id)")
     .eq("id", id).maybeSingle();
   if (!i) notFound();
   const im = i as unknown as Imovel & {
-    condominios: { nome: string; endereco: string | null } | null; contratos: Contrato[];
+    condominios: { nome: string; endereco: string | null; iptu_inscricao: string | null; energia_cliente: string | null; agua_cliente: string | null } | null; contratos: Contrato[];
     imovel_proprietarios: { percentual: number; proprietario_id: string }[];
   };
   const c = im.contratos.find((x) => x.ativo);
@@ -89,6 +90,21 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
           <small className="muted">Estimativa do próximo repasse. Inclui as despesas que você marcou para descontar.</small>
         </div>
       </div>
+      <section className="sec">
+        <div className="sec-h"><h2>IPTU e contas de consumo</h2></div>
+        <div className="box">
+          {([["IPTU", "Inscrição", "iptu_inscricao"], ["Energia", "Nº do cliente", "energia_cliente"], ["Água", "Nº do cliente", "agua_cliente"]] as const).map(([t, rot, k]) => {
+            const doImovel = im[k], doCond = im.condominios?.[k];
+            const v = doImovel ?? doCond;
+            return (
+              <div key={k} className="mv">
+                <span className="t"><b>{t}</b><small>{rot}{!doImovel && doCond ? " · do condomínio inteiro" : ""}</small></span>
+                {v ? <><span className="mono" style={{ overflowWrap: "anywhere", textAlign: "right" }}>{v}</span><Copiar texto={v} /></> : <span className="muted small">não informado</span>}
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </>
   );
 }

@@ -45,6 +45,15 @@ export default async function EditarCondominio({ params, searchParams }: {
             <div className="field"><label className="label" htmlFor="regra_padrao">Descrição da regra</label>
               <input id="regra_padrao" name="regra_padrao" placeholder="10 aptos + 2 lojas de terceiros" defaultValue={c.regra_padrao ?? ""} /></div>
           </div>
+      <div className="row3">
+        <div className="field"><label className="label" htmlFor="iptu_inscricao">Inscrição do IPTU</label>
+          <input id="iptu_inscricao" name="iptu_inscricao" defaultValue={c?.iptu_inscricao ?? ""} /></div>
+        <div className="field"><label className="label" htmlFor="energia_cliente">Nº cliente energia</label>
+          <input id="energia_cliente" name="energia_cliente" defaultValue={c?.energia_cliente ?? ""} /></div>
+        <div className="field"><label className="label" htmlFor="agua_cliente">Nº cliente água</label>
+          <input id="agua_cliente" name="agua_cliente" defaultValue={c?.agua_cliente ?? ""} /></div>
+      </div>
+      <small className="muted" style={{ marginTop: -8 }}>Valem para todas as unidades. O proprietário vê no portal, em cada imóvel.</small>
           <div className="field"><label className="label" htmlFor="observacoes">Observações</label><textarea id="observacoes" name="observacoes" defaultValue={c.observacoes ?? ""} /></div>
           <div className="actions"><button className="btn primary">Salvar</button></div>
         </form>

@@ -133,6 +133,9 @@ export async function salvarCondominio(form: FormData) {
       cotas_padrao: numero(form, "cotas_padrao"),
       regra_padrao: texto(form, "regra_padrao"),
       observacoes: texto(form, "observacoes"),
+      iptu_inscricao: texto(form, "iptu_inscricao"),
+      energia_cliente: texto(form, "energia_cliente"),
+      agua_cliente: texto(form, "agua_cliente"),
     };
     if (id) {
       checar((await supabase.from("condominios").update(dados).eq("id", id)).error);
@@ -215,6 +218,9 @@ export async function salvarImovel(form: FormData) {
       motivo_indisponivel: status === "indisponivel" ? texto(form, "motivo_indisponivel") : null,
       observacoes: texto(form, "observacoes"),
       condominio_pago_por: form.get("condominio_pago_por") === "proprietario" ? "proprietario" : "imobiliaria",
+      iptu_inscricao: texto(form, "iptu_inscricao"),
+      energia_cliente: texto(form, "energia_cliente"),
+      agua_cliente: texto(form, "agua_cliente"),
     };
     if (id) {
       checar((await supabase.from("imoveis").update(dados).eq("id", id)).error);
