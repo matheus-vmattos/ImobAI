@@ -12,6 +12,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { carregarCarteira } from "./dados";
 import { aplicarDecisoesAutomaticas, responsaveis } from "@/lib/decisoes";
 import { estornarItens } from "@/lib/cobrancas";
+import { enviarDespesa as enviarLancamento, gravarItens, guardarPdf, lancar, ratear } from "@/lib/lancamento";
 
 const voltar = (path: string, params: Record<string, string>): never => redirect(`${path}?${new URLSearchParams(params)}`);
 const BUCKET = "despesas";
@@ -153,4 +154,61 @@ export async function confirmarReembolso(form: FormData) {
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(back, { ok: "Recebimento confirmado." });
+}
+
+/** Conta mensal de valor variável: informa o valor do mês, rateia e envia. */
+export async function completarDespesa(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const id = String(form.get("id"));
+  const back = `/admin/despesas/${id}`;
+  try {
+    const valor = numero(form, "valor");
+    if (!valor || valor <= 0) throw new Error("Informe o valor.");
+    const { data: d } = await supabase.from("despesas").select("*").eq("id", id).eq("status", "rascunho").single();
+    if (!d) throw new Error("Rascunho não encontrado.");
+    const { r, regra, divisor, unidades } = await ratear(supabase, { condominioId: d.condominio_id, imovelId: d.imovel_id, regra: d.regra, divisor: d.divisor, unidades: d.unidades }, valor, d.cobra_taxa_adm);
+    const pdf_path = (await guardarPdf(form.get("pdf"), id)) ?? d.pdf_path;
+    await supabase.from("despesa_itens").delete().eq("despesa_id", id);
+    const { error } = await supabase.from("despesas").update({ valor_total: valor, valor_fora: r.fora, regra, divisor, unidades, pdf_path, prazo: texto(form, "prazo") }).eq("id", id);
+    if (error) throw new Error(error.message);
+    await gravarItens(supabase, id, d.tipo, r.itens);
+    const precisam = await enviarLancamento(supabase, id);
+    if (precisam.length) after(() => avisos.despesaEnviada(id, precisam));
+  } catch (e) { voltar(back, { erro: e instanceof Error ? e.message : "Não foi possível enviar." }); }
+  revalidatePath("/admin", "layout");
+  revalidatePath("/portal", "layout");
+  voltar(back, { ok: "Valor informado e despesa enviada." });
+}
+
+/** Vários PDFs de uma vez (ex.: boletos de condomínio de cada unidade): cada linha vira uma despesa do imóvel. */
+export async function lancarLote(form: FormData) {
+  const { supabase, user } = await exigirAdmin();
+  const back = "/admin/despesas/lote";
+  const pdfs = form.getAll("pdf");
+  const imoveis = form.getAll("imovel_id").map(String);
+  const descricoes = form.getAll("descricao").map(String);
+  const valores = form.getAll("valor").map((v) => Number(String(v).replace(/\./g, "").replace(",", ".")));
+  const tipos = form.getAll("tipo").map(String);
+  const prazo = texto(form, "prazo");
+  const competencia = texto(form, "competencia");
+  let n = 0;
+  try {
+    if (!imoveis.length) throw new Error("Adicione pelo menos um PDF.");
+    imoveis.forEach((im, i) => {
+      if (!im) throw new Error(`Linha ${i + 1}: escolha o imóvel.`);
+      if (!(valores[i] > 0)) throw new Error(`Linha ${i + 1}: informe o valor.`);
+    });
+    for (let i = 0; i < imoveis.length; i++) {
+      const { id, precisam } = await lancar(supabase, {
+        destino: { condominioId: null, imovelId: imoveis[i], regra: "integral", divisor: null, unidades: null },
+        tipo: tipos[i] || "condominio", descricao: descricoes[i] || "Conta", total: valores[i], cobraTaxa: false,
+        competencia, prazo, pdf: pdfs[i] ?? null, criadoPor: user.id,
+      });
+      if (precisam.length) after(() => avisos.despesaEnviada(id, precisam));
+      n++;
+    }
+  } catch (e) { voltar(back, { erro: (n ? `${n} lançadas antes do erro. ` : "") + (e instanceof Error ? e.message : "Falha no lote.") }); }
+  revalidatePath("/admin", "layout");
+  revalidatePath("/portal", "layout");
+  voltar("/admin/despesas", { ok: `${n} despesas lançadas e enviadas.` });
 }

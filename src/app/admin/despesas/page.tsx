@@ -56,6 +56,8 @@ export default async function Despesas({ searchParams }: { searchParams: Promise
             <Link href="?f=rascunho" aria-pressed={f === "rascunho"}>Rascunhos<span className="n">{n("rascunho")}</span></Link>
           </div>
           <Link href="/admin/despesas/nova" className="btn primary">Lançar despesa</Link>
+          <Link href="/admin/despesas/lote" className="btn">Vários PDFs de uma vez</Link>
+          <Link href="/admin/despesas/recorrentes" className="btn">Contas mensais</Link>
         </div>
         {filtradas.length ? (
           <div className="box tbl-wrap"><table>

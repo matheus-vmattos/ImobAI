@@ -4,7 +4,7 @@ import { Aviso } from "@/components/Aviso";
 import { exigirAdmin } from "@/lib/auth";
 import { BRL, data } from "@/lib/format";
 import { SITUACAO_LABEL, situacao, TIPO_LABEL, type Decisao, type StatusReembolso, type TipoDespesa } from "@/lib/types";
-import { confirmarReembolso, enviarDespesa, excluirDespesa } from "../actions";
+import { completarDespesa, confirmarReembolso, enviarDespesa, excluirDespesa } from "../actions";
 
 type Despesa = {
   id: string; descricao: string; tipo: TipoDespesa; competencia: string | null; valor_total: number; regra: string; divisor: number | null;
@@ -54,11 +54,25 @@ export default async function DespesaAdmin({ params, searchParams }: {
 
       <div className="actions">
         {d.pdf_path ? <a className="btn" href={`/despesas/${d.id}/pdf`} target="_blank" rel="noreferrer">Ver PDF</a> : <span className="muted small">Sem PDF anexado</span>}
-        {d.status === "rascunho" && (
+        {d.status === "rascunho" && Number(d.valor_total) > 0 && (
           <form action={enviarDespesa}><input type="hidden" name="id" value={d.id} /><button className="btn primary">Enviar aos proprietários</button></form>
         )}
         <form action={excluirDespesa} style={{ marginLeft: "auto" }}><input type="hidden" name="id" value={d.id} /><button className="btn danger sm">Excluir despesa</button></form>
       </div>
+
+      {d.status === "rascunho" && Number(d.valor_total) === 0 && (
+        <form action={completarDespesa} className="panel" encType="multipart/form-data" style={{ maxWidth: 640 }}>
+          <div className="sec-h"><h2>Conta mensal esperando valor</h2></div>
+          <p className="small muted" style={{ margin: 0 }}>Informe o valor deste mês e anexe a conta. O rateio usa as cotas atuais e a conta é enviada aos proprietários.</p>
+          <input type="hidden" name="id" value={d.id} />
+          <div className="row2">
+            <div className="field"><label className="label" htmlFor="valor">Valor (R$)</label><input id="valor" name="valor" inputMode="decimal" required /></div>
+            <div className="field"><label className="label" htmlFor="prazo">Prazo para resposta</label><input id="prazo" name="prazo" type="date" /></div>
+          </div>
+          <div className="drop"><span>PDF da conta</span><input type="file" name="pdf" accept="application/pdf" /></div>
+          <div className="actions"><button className="btn primary">Informar valor e enviar</button></div>
+        </form>
+      )}
 
       <section className="sec">
         <div className="sec-h"><h2>Proprietários</h2><span className="count">{itens.length} linhas</span><span className="rule" /></div>

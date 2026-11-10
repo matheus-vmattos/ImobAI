@@ -137,7 +137,7 @@ tr.total td { background: var(--surface-2); font-weight: 600 }
 /* ---------- formulários ---------- */
 .field { display: grid; gap: 6px; min-width: 0 }
 .field > .label, .field > label.label { font-size: 12.5px }
-.field input, .field select, .field textarea, .search input, input.inp { background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding: 0 11px; height: 38px; width: 100%; font-size: 14px }
+.field input, .field select, .field textarea, .search input, input.inp, select.inp { background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding: 0 11px; height: 38px; width: 100%; font-size: 14px }
 .field textarea { min-height: 76px; resize: vertical; padding: 9px 11px; height: auto }
 .field input:focus, .field select:focus, .field textarea:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft) }
 .field small { color: var(--muted); font-size: 12.5px }
