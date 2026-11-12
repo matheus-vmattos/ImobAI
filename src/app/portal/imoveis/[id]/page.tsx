@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Copiar } from "@/components/Copiar";
+import { Icon } from "@/components/Icon";
+import { ALUGUEL_TXT, situacaoAluguel } from "@/lib/aluguel";
+import { SITUACAO_LABEL } from "@/lib/types";
 import { StatusPill } from "@/components/StatusPill";
 import { getSessao } from "@/lib/auth";
-import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS, hojeSP, mesSP, diaSP, nomeMes } from "@/lib/format";
 import type { Contrato, Imovel } from "@/lib/types";
 import { carregarDespesas } from "../../despesas";
 import { Renovacoes } from "../../Renovacoes";
@@ -33,14 +36,33 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
     linhas.push([`Taxa de administração (${Number(im.taxa_adm_pct)}%)`, -aluguel * Number(im.taxa_adm_pct) / 100]);
   }
   if (im.seguro_incendio_mensal) linhas.push(["Seguro incêndio (mensal)", -Number(im.seguro_incendio_mensal) * pct / 100]);
-  const { descontosPorImovel } = await carregarDespesas(supabase);
+  const [{ descontosPorImovel, despesas }, { data: als }] = await Promise.all([
+    carregarDespesas(supabase),
+    supabase.from("alugueis").select("competencia, vencimento, valor, recebido_em, valor_recebido, contratos!inner(imovel_id, inquilino)")
+      .eq("contratos.imovel_id", id).order("competencia", { ascending: false }).limit(12),
+  ]);
+  const hoje = hojeSP();
+  const alugueis = ((als ?? []) as unknown as { competencia: string; vencimento: string; valor: number; recebido_em: string | null; valor_recebido: number | null; contratos: { inquilino: string } }[])
+    .map((a) => ({ ...a, s: situacaoAluguel({ vencimento: a.vencimento, valor: Number(a.valor), recebidoEm: a.recebido_em, valorRecebido: a.valor_recebido == null ? null : Number(a.valor_recebido) }, hoje) }));
+  const doMes = alugueis.find((a) => a.competencia.slice(0, 7) === mesSP());
+  // histórico da unidade: aluguéis e contas, do mais recente para o mais antigo
+  const historico = [
+    ...alugueis.map((a) => ({
+      quando: a.recebido_em ?? a.vencimento, titulo: `Aluguel de ${nomeMes(a.competencia.slice(0, 7)).split("/")[0]}`, sub: ALUGUEL_TXT(a.s).replace(/^Aluguel /, ""),
+      valor: (a.s.recebido ?? a.s.valor) * pct / 100, cor: a.s.situacao === "atrasado" ? "bad" : a.s.situacao === "pago" ? "ok" : "warn", sinal: a.s.recebidoEm ? "+" : "",
+    })),
+    ...despesas.filter((d) => d.unidades.some((u) => u.imovelId === im.id)).map((d) => ({
+      quando: diaSP(d.enviadaEm ?? hoje), titulo: d.descricao, sub: SITUACAO_LABEL[d.situacao],
+      valor: d.unidades.find((u) => u.imovelId === im.id)!.valor, cor: "", sinal: d.situacao === "inquilino" || d.situacao === "direto" ? "" : "−",
+    })),
+  ].sort((a, b) => b.quando.localeCompare(a.quando)).slice(0, 24);
   descontosPorImovel(im.id).forEach((d) => linhas.push([d.descricao, -d.valor]));
   const liquido = linhas.reduce((a, l) => a + l[1], 0);
 
   return (
     <>
       <section className="hero">
-        <div className="crumbs"><Link href="/portal">Meus imóveis</Link><span>/</span><span>{im.identificacao}</span></div>
+        <div className="crumbs"><Link href={im.condominio_id ? `/portal/condominios/${im.condominio_id}` : "/portal/imoveis"}>{im.condominios?.nome ?? "Seus imóveis"}</Link><span>/</span><span>{im.identificacao}</span></div>
         <h1>{im.identificacao} <StatusPill status={im.status} /></h1>
         <p className="muted" style={{ margin: 0 }}>{im.condominios ? `${im.condominios.nome} · ${im.condominios.endereco ?? ""}` : im.endereco}</p>
       </section>
@@ -51,12 +73,18 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
           {c ? (
             <>
               <div className="kpis" style={{ gridTemplateColumns: "repeat(3, minmax(0,1fr))" }}>
-                <div className="kpi"><span className="label">Aluguel</span><span className="v" style={{ fontSize: 18 }}>{BRL0(c.aluguel)}</span></div>
-                <div className="kpi"><span className="label">{im.status === "devolucao" ? "Chaves" : "Até"}</span><span className="v" style={{ fontSize: 18 }}>{data(im.status === "devolucao" ? c.entrega_chaves_prevista : c.fim)}</span></div>
+                <div className="kpi"><span className="label">Aluguel</span><span className="v" style={{ fontSize: 16 }}>{BRL0(c.aluguel)}</span></div>
+                <div className="kpi"><span className="label">{im.status === "devolucao" ? "Chaves" : "Até"}</span><span className="v" style={{ fontSize: 16 }}>{data(im.status === "devolucao" ? c.entrega_chaves_prevista : c.fim).replace(/\/20(\d\d)$/, "/$1")}</span></div>
                 <div className="kpi"><span className="label">Restam</span>
-                  <span className="v" style={{ fontSize: 18, color: im.status === "devolucao" ? "var(--dev)" : dias! <= RENOVACAO_DIAS ? "var(--warn)" : undefined }}>
+                  <span className="v" style={{ fontSize: 16, color: im.status === "devolucao" ? "var(--dev)" : dias! <= RENOVACAO_DIAS ? "var(--warn)" : undefined }}>
                     {im.status === "devolucao" && c.entrega_chaves_prevista ? diasAte(c.entrega_chaves_prevista) : dias} dias</span></div>
               </div>
+              {doMes && (
+                <div className="mv" style={{ border: "1px solid var(--line)", borderRadius: 9 }}>
+                  <span className={`ic ${doMes.s.situacao === "atrasado" ? "bad" : doMes.s.situacao === "pago" ? "ok" : "warn"}`}><Icon name={doMes.s.situacao === "pago" ? "check" : doMes.s.situacao === "atrasado" ? "alert" : "bank"} /></span>
+                  <span className="t"><b>{ALUGUEL_TXT(doMes.s)}</b><small>{doMes.s.situacao === "atrasado" ? "A imobiliária já está cobrando o inquilino." : doMes.s.situacao === "pago" ? "Entra no que você recebe neste mês." : "Ainda dentro do prazo."}</small></span>
+                </div>
+              )}
               <p className="small muted" style={{ margin: 0 }}>Inquilino: {c.inquilino} · início {data(c.inicio)}
                 {c.aviso_saida_em && <> · aviso de saída em {data(c.aviso_saida_em)}</>}</p>
               {im.status === "locado" && dias! <= RENOVACAO_DIAS && (
@@ -69,7 +97,7 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
           ) : im.status === "indisponivel" ? (
             <p className="muted" style={{ margin: 0 }}>{im.motivo_indisponivel ?? "Imóvel indisponível no momento."}</p>
           ) : (
-            <p className="muted" style={{ margin: 0 }}>Disponível para locação{im.aluguel_pedido ? ` por ${BRL0(im.aluguel_pedido)}` : ""}.</p>
+            <p className="muted" style={{ margin: 0 }}>Vago há {Math.max(0, -diasAte((im as unknown as { status_desde: string }).status_desde))} dias. Disponível para locação{im.aluguel_pedido ? ` por ${BRL0(im.aluguel_pedido)}` : ""}.</p>
           )}
         </div>
 
@@ -87,9 +115,22 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
               </div>
             </div>
           ) : <p className="muted small" style={{ margin: 0 }}>Sem valores para este mês.</p>}
-          <small className="muted">Estimativa do mês. Já tira a taxa da imobiliária, o seguro e as contas que você escolheu descontar.</small>
+          <small className="muted">Estimativa do mês. Já tira a taxa da imobiliária, o seguro e as contas que você escolheu descontar.
+            {doMes && !doMes.s.recebidoEm ? " O aluguel só entra depois que o inquilino pagar." : ""}</small>
         </div>
       </div>
+      <section className="sec">
+        <div className="sec-h"><h2>Histórico desta unidade</h2></div>
+        {historico.length ? (
+          <div className="box">{historico.map((h, k) => (
+            <div key={k} className="mv">
+              <span className="t"><b>{h.titulo}</b><small style={{ color: h.cor === "bad" ? "var(--bad)" : undefined }}>{h.sub} · {data(h.quando)}</small></span>
+              <span className={`v ${h.sinal === "+" && h.cor === "ok" ? "pos" : ""}`} style={{ color: h.sinal ? undefined : "var(--muted)", fontWeight: h.sinal ? undefined : 400 }}>{h.sinal} {BRL(h.valor)}</span>
+            </div>
+          ))}</div>
+        ) : <div className="empty">Ainda sem aluguéis ou contas registrados nesta unidade.</div>}
+      </section>
+
       <section className="sec">
         <div className="sec-h"><h2>IPTU e contas de consumo</h2></div>
         <div className="box">

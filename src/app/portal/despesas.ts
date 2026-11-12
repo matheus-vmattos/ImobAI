@@ -22,6 +22,8 @@ export type DespesaPortal = {
   valor: number; taxa: number; total: number;
   /** já entrou em cobrança ou repasse: a resposta não muda mais */
   travada: boolean;
+  /** quando outra pessoa paga as contas deste cadastro (ex.: o irmão sócio) */
+  pagoPor: string | null;
   situacao: Situacao; comentario: string | null; confirmadoEm: string | null; respondidoEm: string | null;
 };
 
@@ -29,6 +31,10 @@ export async function carregarDespesas(supabase: SupabaseClient) {
   const { data } = await supabase.from("despesa_itens")
     .select("*, cobrancas(status), imoveis(identificacao, endereco), despesas(id, descricao, tipo, competencia, valor_total, regra, divisor, prazo, enviada_em, pdf_path, cobra_taxa_adm, condominio_id, condominios(nome))");
   const rows = (data ?? []) as unknown as ItemRow[];
+  // cobranças onde minhas contas entraram, inclusive as de outro pagador (que o RLS não me deixa ler)
+  const { data: cob } = await supabase.rpc("minhas_contas_cobradas");
+  const cobranca = new Map(((cob ?? []) as { cobranca_id: string; status: string; pagador: string; eh_meu: boolean }[]).map((c) => [c.cobranca_id, c]));
+  rows.forEach((r) => { const c = r.cobranca_id ? cobranca.get(r.cobranca_id) : null; if (c) r.cobrancas = { status: c.status }; });
   const porDespesa = new Map<string, ItemRow[]>();
   rows.forEach((r) => porDespesa.set(r.despesas.id, [...(porDespesa.get(r.despesas.id) ?? []), r]));
 
@@ -53,6 +59,7 @@ export async function carregarDespesas(supabase: SupabaseClient) {
       prazo: d.prazo, enviadaEm: d.enviada_em, temPdf: !!d.pdf_path,
       unidades: its.map((i) => ({ imovelId: i.imovel_id, nome: i.imoveis.identificacao, valor: Number(i.valor) + Number(i.taxa_adm) })),
       valor, taxa, total: valor + taxa,
+      pagoPor: (() => { const c = its[0].cobranca_id ? cobranca.get(its[0].cobranca_id) : null; return c && !c.eh_meu ? c.pagador : null; })(),
       travada: its.some((i) => i.cobranca_id || i.repasse_id || i.reembolso === "confirmado"),
       situacao: situacao(its[0]), comentario: its[0].comentario, confirmadoEm: its[0].reembolso_confirmado_em, respondidoEm: its[0].respondido_em,
     };

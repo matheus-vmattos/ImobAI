@@ -42,6 +42,10 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
     ...renovar.map((i) => ({ k: i.id, ic: "refresh", cls: "dev", t: "Renovar contrato?", s: `${[nomeCondo(i.condominioId), i.nome].filter(Boolean).join(" · ")} · vence em ${diasAte(i.fim!)} dias`, v: "", href: `/portal/imoveis/${i.id}#renovacoes` })),
   ];
   const lista = predios(imoveis, condominios);
+  const atrasados = imoveis.filter((i) => i.aluguelMes?.situacao === "atrasado");
+  const vagos = imoveis.filter((i) => i.status === "vazio");
+  const { data: pagadores } = await supabase.rpc("meus_pagadores_nomes");
+  const pagoPor = ((pagadores ?? []) as { pagador: string }[])[0]?.pagador;
 
   return (
     <>
@@ -74,15 +78,36 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
           <div className="kpis" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
             <Link href={recebe.repasseId ? `/portal/repasses/${recebe.repasseId}` : "/portal/extrato?ver=recebi"} className="kpi saldo" style={{ textDecoration: "none", padding: 16 }}>
               <span className="label">Você recebe</span>
-              <span className="v" style={{ color: "var(--ok)", fontSize: 24 }}>{BRL0(recebe.valor)}</span>
-              <small>{recebe.fechado ? "fechado" : "previsto"} para {recebe.dia}{recebe.total ? ` · ${recebe.pagos} de ${recebe.total} aluguéis já pagos` : ""}</small>
+              <span className="v" style={{ color: recebe.valor > 0 ? "var(--ok)" : undefined, fontSize: 24 }}>{BRL0(Math.max(0, recebe.valor))}</span>
+              <small>{recebe.fechado ? "fechado" : "previsto"} para {recebe.dia}{recebe.total ? ` · ${recebe.pagos} de ${recebe.total} aluguéis já pagos` : ""}
+                {recebe.valor < 0 ? ` · até agora as contas e o seguro superam os aluguéis pagos em ${BRL0(-recebe.valor)}` : ""}</small>
             </Link>
             <Link href="/portal/extrato?ver=paguei" className="kpi" style={{ textDecoration: "none" }}>
               <span className="label">Você paga</span>
               <span className="v">{conta.devido > 0 ? BRL0(conta.devido) : "Nada"}</span>
-              <small>{conta.devido > 0 ? `contas da semana · até ${data(conta.abertas[0].vencimento)}` : "nenhuma conta em aberto"}</small>
+              <small>{conta.devido > 0 ? `contas da semana · até ${data(conta.abertas[0].vencimento)}` : pagoPor ? `suas contas entram na cobrança de ${pagoPor}` : "nenhuma conta em aberto"}</small>
             </Link>
           </div>
+
+          {(atrasados.length > 0 || vagos.length > 0) && (
+            <section className="box">
+              <div className="wk">Para você saber</div>
+              {atrasados.length > 0 && (
+                <Link href="/portal/imoveis?ver=atrasados" className="mv" style={{ textDecoration: "none" }}>
+                  <span className="ic bad"><Icon name="alert" /></span>
+                  <span className="t"><b>{atrasados.length} {atrasados.length === 1 ? "aluguel atrasado" : "aluguéis atrasados"}</b><small>A {MARCA} já está cobrando {atrasados.length === 1 ? "o inquilino" : "os inquilinos"}. Só entra no que você recebe depois de pago.</small></span>
+                  <span className="v">{BRL0(atrasados.reduce((a, i) => a + (i.aluguel ?? 0) * i.percentual / 100, 0))}</span><Icon name="chev" className="dim" />
+                </Link>
+              )}
+              {vagos.length > 0 && (
+                <Link href="/portal/imoveis?ver=vagos" className="mv" style={{ textDecoration: "none" }}>
+                  <span className="ic warn"><Icon name="home" /></span>
+                  <span className="t"><b>{vagos.length} {vagos.length === 1 ? "imóvel vago" : "imóveis vagos"}</b><small>o mais antigo há {Math.max(...vagos.map((v) => v.diasNaSituacao))} dias</small></span>
+                  <Icon name="chev" className="dim" />
+                </Link>
+              )}
+            </section>
+          )}
 
           <section className="sec">
             <div className="sec-h"><h2>Seus imóveis</h2><span className="rule" /><span className="muted small">{imoveis.length} · {lista.length} {lista.length === 1 ? "prédio" : "prédios"}</span></div>

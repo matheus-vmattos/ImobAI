@@ -287,3 +287,11 @@ input::placeholder, textarea::placeholder { color: var(--dim) }
 .cartao:hover { border-color: var(--line-strong) }
 .cartao b { font-weight: 600; font-size: 14px } .cartao small { color: var(--muted); font-size: 12px }
 .cartao .s { display: flex; gap: 6px; align-items: center; font-size: 12.5px; margin-top: 2px }
+/* espera e envio */
+.esq { display: grid; gap: 12px }
+.esq-b { display: block; border-radius: var(--r); background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: esq 1.2s linear infinite }
+@keyframes esq { to { background-position: -200% 0 } }
+@media (prefers-reduced-motion: reduce) { .esq-b { animation: none } }
+.enviando { pointer-events: none; opacity: .65; position: relative }
+.enviando::after { content: ""; width: 12px; height: 12px; margin-left: 8px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: gira .7s linear infinite; display: inline-block; vertical-align: -1px }
+@keyframes gira { to { transform: rotate(360deg) } }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Copiar } from "@/components/Copiar";
+import { ALUGUEL_TXT } from "@/lib/aluguel";
 import { getSessao } from "@/lib/auth";
 import { BRL, BRL0, diasAte, RENOVACAO_DIAS, mesSP } from "@/lib/format";
 import type { StatusImovel } from "@/lib/types";
@@ -22,8 +23,9 @@ export default async function PredioPortal({ params, searchParams }: { params: P
   const p = predios(imoveis, condominios).find((x) => x.id === condId);
   if (!p) notFound();
   const unidades = imoveis.filter((i) => i.condominioId === condId);
-  const filtro = (ver ?? "todas") as "todas" | StatusImovel;
-  const vis = filtro === "todas" ? unidades : unidades.filter((u) => u.status === filtro);
+  const filtro = (ver ?? "todas") as "todas" | "atrasados" | StatusImovel;
+  const atrasados = unidades.filter((u) => u.aluguelMes?.situacao === "atrasado");
+  const vis = filtro === "todas" ? unidades : filtro === "atrasados" ? atrasados : unidades.filter((u) => u.status === filtro);
   const mes = mesSP();
   const contas = despesas.filter((d) => d.condominioId === condId && (d.enviadaEm ?? "").startsWith(mes) && d.total > 0);
   const totalContas = contas.reduce((a, d) => a + d.total, 0);
@@ -59,6 +61,7 @@ export default async function PredioPortal({ params, searchParams }: { params: P
             {(["todas", "locado", "vazio", "devolucao"] as const).filter((k) => k === "todas" || p.porStatus[k]).map((k) => (
               <Link key={k} href={href(k)} aria-pressed={filtro === k}>{k === "todas" ? "Todas" : SITUACAO_IMOVEL[k] + (k === "locado" ? "s" : k === "vazio" ? "s" : "")} <span className="n">{k === "todas" ? unidades.length : p.porStatus[k]}</span></Link>
             ))}
+            {atrasados.length > 0 && <Link href={href("atrasados")} aria-pressed={filtro === "atrasados"}>Aluguel atrasado <span className="n">{atrasados.length}</span></Link>}
           </div>
         </div>
         <div className="cartoes">
@@ -68,9 +71,12 @@ export default async function PredioPortal({ params, searchParams }: { params: P
               <Link key={u.id} href={`/portal/imoveis/${u.id}`} className="cartao">
                 <b>{u.nome}</b>
                 <small style={{ color: vence ? "var(--warn)" : undefined }}>
-                  {vence ? `vence em ${diasAte(u.fim!)} dias` : u.status === "locado" && u.fim ? `até ${mmaa(u.fim)}` : u.status === "vazio" ? "pronto para alugar" : u.status === "devolucao" ? "inquilino saindo" : u.motivo ?? "indisponível"}
+                  {vence ? `contrato vence em ${diasAte(u.fim!)} dias` : u.status === "locado" && u.fim ? `contrato até ${mmaa(u.fim)}` : u.status === "vazio" ? `vago há ${u.diasNaSituacao} ${u.diasNaSituacao === 1 ? "dia" : "dias"}` : u.status === "devolucao" ? "inquilino saindo" : u.motivo ?? "indisponível"}
                   {u.percentual < 100 ? ` · sua parte ${u.percentual}%` : ""}
                 </small>
+                {u.aluguelMes && (u.status === "locado" || u.status === "devolucao") && (
+                  <small style={{ color: u.aluguelMes.situacao === "atrasado" ? "var(--bad)" : u.aluguelMes.situacao === "pago" ? "var(--ok)" : undefined }}>{ALUGUEL_TXT(u.aluguelMes)}</small>
+                )}
                 <span className="s"><i className="dot" style={{ background: COR_IMOVEL[u.status] }} />{SITUACAO_IMOVEL[u.status]}{u.aluguel && u.status !== "vazio" && u.status !== "indisponivel" ? ` · ${BRL0(u.aluguel * u.percentual / 100)}` : ""}</span>
               </Link>
             );

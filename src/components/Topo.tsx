@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { sair } from "@/app/login/actions";
+import { Suspense } from "react";
+import { Enviando } from "./Enviando";
 import { Icon } from "./Icon";
 import { Abas, NavLinks, type NavItem } from "./NavLinks";
 
@@ -34,6 +36,7 @@ export function Shell({ links, abas, nome, papel, marca, children }: {
         </details>
       </header>
       <main className="page">{children}</main>
+      <Suspense><Enviando /></Suspense>
       {abas && <Abas links={abas} />}
     </div>
   );

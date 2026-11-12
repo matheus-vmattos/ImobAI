@@ -13,7 +13,7 @@ export function Historico({ despesas }: { despesas: DespesaPortal[] }) {
           <b>{d.temPdf ? <a className="rowlink" href={`/despesas/${d.id}/pdf`} target="_blank" rel="noreferrer">{d.descricao}</a> : d.descricao}</b>
           <small>{d.onde} · {data(d.enviadaEm)}</small>
           <span style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6, flexWrap: "wrap" }}>
-            <span className={`pill ${d.situacao}`}>{SITUACAO_LABEL[d.situacao]}</span>
+            <span className={`pill ${d.situacao}`}>{d.pagoPor ? (d.situacao === "paga" ? `Paga por ${d.pagoPor}` : `Na cobrança de ${d.pagoPor}`) : SITUACAO_LABEL[d.situacao]}</span>
             {["desconto", "reembolso", "proprio"].includes(d.situacao) && !d.travada && (
               <form action={responderDespesa}><input type="hidden" name="despesa_id" value={d.id} /><button className="btn ghost sm" name="decisao" value="">Alterar</button></form>
             )}
