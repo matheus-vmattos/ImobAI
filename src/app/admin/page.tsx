@@ -60,6 +60,11 @@ export default async function AdminHome() {
         </div>
       </section>
 
+      {(imoveis ?? []).length === 0 && (
+        <div className="empty"><b>Comece cadastrando a carteira.</b>Importe proprietários, condomínios, imóveis e contratos de uma planilha, ou cadastre um a um.
+          <span className="actions"><Link className="btn primary" href="/admin/importar">Importar planilha</Link><Link className="btn" href="/admin/proprietarios/novo">Cadastrar proprietário</Link></span></div>
+      )}
+
       <section className="sec">
         <div className="sec-h"><h2>Precisa de você</h2><span className="count">{tarefas.length}</span></div>
         {tarefas.length ? (

@@ -18,6 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/cobrancas", label: "Cobranças", icon: "coins", grupo: "Financeiro", badge: conferir ?? 0 },
     { href: "/admin/repasses", label: "Repasses", icon: "wallet", grupo: "Financeiro" },
     { href: "/admin/notificacoes", label: "E-mails", icon: "mail", grupo: "Imobiliária" },
+    { href: "/admin/importar", label: "Importar planilha", icon: "upload", grupo: "Imobiliária" },
     { href: "/admin/atividade", label: "Atividade", icon: "repeat", grupo: "Imobiliária" },
     { href: "/admin/configuracoes", label: "Configurações", icon: "file", grupo: "Imobiliária" },
   ];
