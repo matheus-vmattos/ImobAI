@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { extrato, type LinhaCobranca } from "@/lib/contaCorrente";
+import { diaSP } from "@/lib/format";
 
 export type CobrancaPortal = {
   id: string; pagador_id: string; emitida_em: string; inicio: string; fim: string; vencimento: string;
@@ -21,8 +22,8 @@ export async function carregarConta(supabase: SupabaseClient) {
   const abertas = cobrancas.filter((c) => c.status === "aberta").sort((a, b) => a.vencimento.localeCompare(b.vencimento));
   const ext = extrato({
     cobrancas: cobrancas.filter((c) => c.status !== "cancelada").map((c) => ({
-      id: c.id, emitidaEm: c.emitida_em, inicio: c.inicio, fim: c.fim, total: Number(c.total), abonado: Number(c.abonado),
-      descontado: Number(c.descontado), quitadaEm: c.quitada_em, qtd: c.linhas.length,
+      id: c.id, emitidaEm: diaSP(c.emitida_em), inicio: c.inicio, fim: c.fim, total: Number(c.total), abonado: Number(c.abonado),
+      descontado: Number(c.descontado), quitadaEm: c.quitada_em ? diaSP(c.quitada_em) : null, qtd: c.linhas.length,
     })),
     pagamentos: pagamentos.filter((p) => p.status === "confirmado").map((p) => ({ id: p.id, data: p.data, valor: Number(p.valor_confirmado), forma: p.forma })),
   });

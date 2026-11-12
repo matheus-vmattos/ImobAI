@@ -1,5 +1,6 @@
 "use server";
 
+import { hojeSP } from "@/lib/format";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
@@ -219,7 +220,7 @@ export async function terceiroRecebido(form: FormData) {
   const { supabase } = await exigirAdmin();
   const back = String(form.get("voltar"));
   const recebido = form.get("recebido") === "1";
-  const { error } = await supabase.from("despesa_terceiros").update({ recebido_em: recebido ? new Date().toISOString().slice(0, 10) : null }).eq("id", String(form.get("id")));
+  const { error } = await supabase.from("despesa_terceiros").update({ recebido_em: recebido ? hojeSP() : null }).eq("id", String(form.get("id")));
   if (error) voltar(back, { erro: error.message });
   revalidatePath("/admin", "layout");
   voltar(back, { ok: recebido ? "Recebimento do terceiro registrado." : "Recebimento desfeito." });

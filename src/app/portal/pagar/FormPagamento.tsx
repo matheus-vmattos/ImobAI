@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BRL } from "@/lib/format";
+import { BRL, hojeSP } from "@/lib/format";
 import { informarPagamento } from "../actions";
 
 const parse = (s: string) => { const n = Number(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s); return Number.isFinite(n) ? n : 0; };
@@ -31,7 +31,7 @@ export function FormPagamento({ pagadores, devido, cobrancaId }: { pagadores: { 
       <div className="row2">
         <div className="field"><label className="label" htmlFor="valor">Valor pago (soma dos comprovantes)</label>
           <input id="valor" name="valor" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required /></div>
-        <div className="field"><label className="label" htmlFor="data">Data</label><input id="data" name="data" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></div>
+        <div className="field"><label className="label" htmlFor="data">Data</label><input id="data" name="data" type="date" defaultValue={hojeSP()} /></div>
       </div>
       {total > 0 && (
         <div className="bankbox">

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { emailsProprietarios, link, modelo, notificar, primeiroNome, type Mensagem } from "@/lib/email";
-import { BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { BRL0, data, diasAte, RENOVACAO_DIAS, hojeSP, somarData } from "@/lib/format";
 import { createServiceClient } from "@/lib/supabase/server";
 import { rotinaDiaria } from "@/lib/rotinas";
 
@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
   const db = createServiceClient();
   const rotina = await rotinaDiaria(db);
-  const hoje = new Date().toISOString().slice(0, 10);
-  const limite = new Date(Date.now() + RENOVACAO_DIAS * 864e5).toISOString().slice(0, 10);
+  const hoje = hojeSP();
+  const limite = somarData(hojeSP(), 0, RENOVACAO_DIAS);
 
   const [{ data: contratos }, { data: itens }, { data: jaAvisados }] = await Promise.all([
     db.from("contratos").select("id, imovel_id, aluguel, fim, imoveis!inner(identificacao, status, condominios(nome), imovel_proprietarios(proprietario_id)), renovacoes(proprietario_id)")

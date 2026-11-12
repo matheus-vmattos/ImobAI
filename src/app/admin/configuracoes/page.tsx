@@ -29,6 +29,10 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
           <div className="field"><label className="label" htmlFor="abono_ate">Abonar diferença até (R$)</label><input id="abono_ate" name="abono_ate" inputMode="decimal" defaultValue={c.abono_ate} />
             <small>Ex.: depositou R$ 2.550,00 de R$ 2.551,30.</small></div>
         </div>
+        <div className="sec-h" style={{ marginTop: 6 }}><h2>Repasse</h2></div>
+        <div className="field" style={{ maxWidth: 240 }}><label className="label" htmlFor="repasse_dia">Dia do repasse no mês seguinte</label>
+          <input id="repasse_dia" name="repasse_dia" inputMode="numeric" defaultValue={c.repasse_dia} />
+          <small>O proprietário vê “Você recebe … dia {c.repasse_dia}”.</small></div>
         <div className="actions"><button className="btn primary">Salvar</button></div>
       </form>
     </>

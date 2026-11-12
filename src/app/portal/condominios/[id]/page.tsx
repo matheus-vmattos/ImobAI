@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Copiar } from "@/components/Copiar";
 import { getSessao } from "@/lib/auth";
-import { BRL, BRL0, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { BRL, BRL0, diasAte, RENOVACAO_DIAS, mesSP } from "@/lib/format";
 import type { StatusImovel } from "@/lib/types";
 import { carregarPortal } from "../../dados";
 import { carregarDespesas } from "../../despesas";
@@ -24,7 +24,7 @@ export default async function PredioPortal({ params, searchParams }: { params: P
   const unidades = imoveis.filter((i) => i.condominioId === condId);
   const filtro = (ver ?? "todas") as "todas" | StatusImovel;
   const vis = filtro === "todas" ? unidades : unidades.filter((u) => u.status === filtro);
-  const mes = new Date().toISOString().slice(0, 7);
+  const mes = mesSP();
   const contas = despesas.filter((d) => d.condominioId === condId && (d.enviadaEm ?? "").startsWith(mes) && d.total > 0);
   const totalContas = contas.reduce((a, d) => a + d.total, 0);
   const href = (v: string) => `/portal/condominios/${id}${v === "todas" ? "" : `?ver=${v}`}`;

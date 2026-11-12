@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { SeletorMes } from "@/components/SeletorMes";
 import { exigirAdmin } from "@/lib/auth";
-import { BRL, data, mesOu, nomeMes } from "@/lib/format";
+import { BRL, data, mesOu, nomeMes, hojeSP } from "@/lib/format";
 import { desfazerRecebimento, registrarRecebimento } from "./actions";
 import { carregarAlugueis } from "./dados";
 
@@ -11,7 +11,7 @@ export default async function Alugueis({ searchParams }: { searchParams: Promise
   const mes = mesOu(m);
   const { supabase } = await exigirAdmin();
   const linhas = await carregarAlugueis(supabase, mes);
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeSP();
   const situ = (l: (typeof linhas)[number]) =>
     l.recebido_em ? (Number(l.valor_recebido) < Number(l.valor) ? "parcial" : "recebido") : l.vencimento < hoje ? "atrasado" : "a-receber";
   const filtro = ver ?? "todos";

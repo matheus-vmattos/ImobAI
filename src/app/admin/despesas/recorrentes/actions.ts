@@ -1,5 +1,6 @@
 "use server";
 
+import { hojeSP } from "@/lib/format";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { exigirAdmin } from "@/lib/auth";
@@ -48,7 +49,7 @@ export async function lancarAgora(form: FormData) {
   const { supabase } = await exigirAdmin();
   let r = { lancadas: 0, rascunhos: 0 };
   try {
-    r = await lancarRecorrentes(supabase, new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()), texto(form, "id") ?? undefined);
+    r = await lancarRecorrentes(supabase, hojeSP(), texto(form, "id") ?? undefined);
   } catch (e) { voltar({ erro: msg(e) }); }
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");

@@ -5,7 +5,7 @@ type ItemRow = {
   id: string; imovel_id: string; cotas: number | null; percentual_dono: number; valor: number; taxa_adm: number;
   decisao: Decisao | null; comentario: string | null; reembolso: StatusReembolso | null; reembolso_confirmado_em: string | null;
   respondido_em: string | null; repassado_em: string | null;
-  responsavel: string; decidido_auto: boolean; cobranca_id: string | null; cobrancas: { status: string } | null;
+  responsavel: string; decidido_auto: boolean; cobranca_id: string | null; repasse_id: string | null; cobrancas: { status: string } | null;
   imoveis: { identificacao: string; endereco: string | null };
   despesas: {
     id: string; descricao: string; tipo: TipoDespesa; competencia: string | null; valor_total: number; regra: string; divisor: number | null;
@@ -20,6 +20,8 @@ export type DespesaPortal = {
   condominioId: string | null; onde: string; regraTxt: string; prazo: string | null; enviadaEm: string | null; temPdf: boolean;
   unidades: { imovelId: string; nome: string; valor: number }[];
   valor: number; taxa: number; total: number;
+  /** já entrou em cobrança ou repasse: a resposta não muda mais */
+  travada: boolean;
   situacao: Situacao; comentario: string | null; confirmadoEm: string | null; respondidoEm: string | null;
 };
 
@@ -51,6 +53,7 @@ export async function carregarDespesas(supabase: SupabaseClient) {
       prazo: d.prazo, enviadaEm: d.enviada_em, temPdf: !!d.pdf_path,
       unidades: its.map((i) => ({ imovelId: i.imovel_id, nome: i.imoveis.identificacao, valor: Number(i.valor) + Number(i.taxa_adm) })),
       valor, taxa, total: valor + taxa,
+      travada: its.some((i) => i.cobranca_id || i.repasse_id || i.reembolso === "confirmado"),
       situacao: situacao(its[0]), comentario: its[0].comentario, confirmadoEm: its[0].reembolso_confirmado_em, respondidoEm: its[0].respondido_em,
     };
   }).sort((a, b) => (b.enviadaEm ?? "").localeCompare(a.enviadaEm ?? ""));

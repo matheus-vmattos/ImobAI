@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BRL } from "@/lib/format";
+import { BRL, hojeSP, somarData } from "@/lib/format";
 import { calcularRateio, type Regra } from "@/lib/rateio";
 import { TIPO_LABEL, type TipoDespesa } from "@/lib/types";
 import { lancarDespesa } from "../actions";
@@ -12,7 +12,7 @@ const parseBR = (s: string) => {
   const n = Number(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s);
   return Number.isFinite(n) ? n : 0;
 };
-const em7dias = () => new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+const em7dias = () => somarData(hojeSP(), 0, 7);
 
 export function LancarDespesa({ condominios, imoveis }: { condominios: CondominioForm[]; imoveis: ImovelOpcao[] }) {
   const [destino, setDestino] = useState<"cond" | "avulso">(condominios.length ? "cond" : "avulso");

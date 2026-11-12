@@ -1,12 +1,13 @@
 "use server";
 
+import { hojeSP } from "@/lib/format";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { exigirAdmin } from "@/lib/auth";
 import { numero, texto } from "@/lib/form";
 
 const voltar = (mes: string, params: Record<string, string>): never => redirect(`/admin/alugueis?${new URLSearchParams({ mes, ...params })}`);
-const hoje = () => new Date().toISOString().slice(0, 10);
+const hoje = () => hojeSP();
 
 /** Marca como recebidos os aluguéis selecionados (pelo valor cheio) ou um só com valor e data informados. */
 export async function registrarRecebimento(form: FormData) {

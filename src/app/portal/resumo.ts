@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calcularPrevia } from "@/app/admin/repasses/dados";
-import { diasAte, mesRelativo, RENOVACAO_DIAS } from "@/lib/format";
+import { diasAte, mesRelativo, RENOVACAO_DIAS, mesSP } from "@/lib/format";
 import type { StatusImovel } from "@/lib/types";
 import type { CondominioPortal, ImovelPortal } from "./dados";
 
@@ -36,8 +36,9 @@ export const resumoPredio = (p: Predio) => {
 
 /** Quanto o proprietário recebe pelo mês atual: o repasse fechado ou, se ainda não fechou, a estimativa. */
 export async function proximoRecebimento(supabase: SupabaseClient, proprietarioIds: string[]) {
-  const mes = new Date().toISOString().slice(0, 7);
-  const dia = `10/${mesRelativo(mes, 1).slice(5, 7)}`;
+  const mes = mesSP();
+  const { data: cfg } = await supabase.from("config").select("repasse_dia").maybeSingle();
+  const dia = `${String(cfg?.repasse_dia ?? 10).padStart(2, "0")}/${mesRelativo(mes, 1).slice(5, 7)}`;
   const { data: fechados } = await supabase.from("repasses").select("id, liquido").eq("competencia", `${mes}-01`).in("proprietario_id", proprietarioIds);
   const { data: al } = await supabase.from("alugueis").select("recebido_em").eq("competencia", `${mes}-01`);
   const pagos = (al ?? []).filter((a) => a.recebido_em).length, total = (al ?? []).length;

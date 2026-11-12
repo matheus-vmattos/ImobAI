@@ -8,7 +8,7 @@ import { exigirAdmin } from "@/lib/auth";
 import * as avisos from "@/lib/avisos";
 import { confirmarPagamento, estornarItens, gerarCobrancas, lancarAjuste } from "@/lib/cobrancas";
 import { numero, obrigatorio, texto } from "@/lib/form";
-import { BRL } from "@/lib/format";
+import { BRL, hojeSP } from "@/lib/format";
 
 const voltar = (path: string, params: Record<string, string>): never => redirect(`${path}?${new URLSearchParams(params)}`);
 const msg = (e: unknown) => (e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
@@ -16,9 +16,9 @@ const FORMAS = ["deposito", "pix", "transferencia", "outro"];
 const atualizar = () => { revalidatePath("/admin", "layout"); revalidatePath("/portal", "layout"); };
 
 export async function gerarAgora() {
-  const { supabase } = await exigirAdmin();
+  const { supabase, user } = await exigirAdmin();
   let criadas: string[] = [];
-  try { criadas = await gerarCobrancas(supabase); } catch (e) { voltar("/admin/cobrancas", { erro: msg(e) }); }
+  try { criadas = await gerarCobrancas(supabase, undefined, undefined, user.id); } catch (e) { voltar("/admin/cobrancas", { erro: msg(e) }); }
   if (criadas.length) after(() => avisos.cobrancasEmitidas(criadas));
   atualizar();
   voltar("/admin/cobrancas", { ok: criadas.length ? `${criadas.length} cobrança${criadas.length > 1 ? "s" : ""} gerada${criadas.length > 1 ? "s" : ""} e enviada${criadas.length > 1 ? "s" : ""}.` : "Nada pendente para cobrar." });
@@ -26,7 +26,7 @@ export async function gerarAgora() {
 
 /** Pagamento que a imobiliária viu no banco (sem comprovante do proprietário): já entra conferido. */
 export async function registrarPagamento(form: FormData) {
-  const { supabase } = await exigirAdmin();
+  const { supabase, user } = await exigirAdmin();
   const back = "/admin/cobrancas";
   let resumo = "";
   try {
@@ -36,11 +36,11 @@ export async function registrarPagamento(form: FormData) {
     const forma = String(form.get("forma"));
     const comprovantes = await guardarComprovantes(form.getAll("comprovantes"), pagador_id);
     const { data: p, error } = await supabase.from("pagamentos").insert({
-      pagador_id, valor, data: texto(form, "data") ?? new Date().toISOString().slice(0, 10), forma: FORMAS.includes(forma) ? forma : "outro",
+      pagador_id, valor, data: texto(form, "data") ?? hojeSP(), forma: FORMAS.includes(forma) ? forma : "outro",
       comprovantes, observacao: texto(form, "observacao"), informado_por: "imobiliaria",
     }).select("id").single();
     if (error) throw new Error(error.message);
-    const r = await confirmarPagamento(supabase, p!.id, valor, form.get("abonar") !== "nao");
+    const r = await confirmarPagamento(supabase, p!.id, valor, form.get("abonar") !== "nao", user.id);
     resumo = `Pagamento de ${BRL(valor)} registrado.` + (r.abonado ? ` Diferença de ${BRL(r.abonado)} abonada.` : "") + (r.credito ? ` ${BRL(r.credito)} ficou de crédito.` : "");
     after(() => avisos.pagamentoConfirmado(p!.id));
   } catch (e) { voltar(back, { erro: msg(e) }); }
@@ -49,12 +49,12 @@ export async function registrarPagamento(form: FormData) {
 }
 
 export async function conferirPagamento(form: FormData) {
-  const { supabase } = await exigirAdmin();
+  const { supabase, user } = await exigirAdmin();
   const id = String(form.get("id"));
   let resumo = "";
   try {
     const valor = numero(form, "valor") ?? 0;
-    const r = await confirmarPagamento(supabase, id, valor, form.get("abonar") !== "nao");
+    const r = await confirmarPagamento(supabase, id, valor, form.get("abonar") !== "nao", user.id);
     resumo = `Pagamento confirmado: ${BRL(r.alocado)} baixados.` + (r.abonado ? ` Diferença de ${BRL(r.abonado)} abonada.` : "") + (r.credito ? ` ${BRL(r.credito)} ficou de crédito.` : "");
     after(() => avisos.pagamentoConfirmado(id));
   } catch (e) { voltar(`/admin/cobrancas/pagamento/${id}`, { erro: msg(e) }); }
@@ -106,6 +106,7 @@ export async function salvarConfig(form: FormData) {
     abono_ate: numero(form, "abono_ate") ?? 5,
     cobranca_dia: Math.min(6, Math.max(0, Number(form.get("cobranca_dia") ?? 1))),
     cobranca_prazo: Math.max(1, numero(form, "cobranca_prazo") ?? 7),
+    repasse_dia: Math.min(28, Math.max(1, numero(form, "repasse_dia") ?? 10)),
   }).eq("id", true);
   if (error) voltar("/admin/configuracoes", { erro: error.message });
   atualizar();

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Icon } from "@/components/Icon";
 import { exigirAdmin } from "@/lib/auth";
-import { BRL, data } from "@/lib/format";
+import { BRL, data, hojeSP, somarData } from "@/lib/format";
 import { gerarAgora, registrarPagamento } from "./actions";
 
 type Cob = { id: string; pagador_id: string; emitida_em: string; inicio: string; fim: string; vencimento: string; total: number; pago: number; abonado: number; descontado: number; status: string; linhas: unknown[]; proprietarios: { nome: string } };
@@ -14,7 +14,7 @@ const saldo = (c: Cob) => Number(c.total) - Number(c.pago) - Number(c.abonado) -
 export default async function Cobrancas({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string; ver?: string }> }) {
   const { ok, erro, ver } = await searchParams;
   const { supabase } = await exigirAdmin();
-  const desde = new Date(Date.now() - 45 * 864e5).toISOString().slice(0, 10);
+  const desde = somarData(hojeSP(), 0, -45);
   const [{ data: cs }, { data: ps }, { data: props }, { data: pend }, { data: ter }] = await Promise.all([
     supabase.from("cobrancas").select("id, pagador_id, emitida_em, inicio, fim, vencimento, total, pago, abonado, descontado, status, linhas, proprietarios(nome)")
       .or(`status.eq.aberta,emitida_em.gte.${desde}`).order("emitida_em", { ascending: false }),
@@ -27,7 +27,7 @@ export default async function Cobrancas({ searchParams }: { searchParams: Promis
   const terceiros = (ter ?? []) as unknown as { id: string; nome: string; valor: number; despesas: { id: string; descricao: string; condominios: { nome: string } | null } }[];
   const cobrancas = (cs ?? []) as unknown as Cob[];
   const pagamentos = (ps ?? []) as unknown as Pag[];
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeSP();
   const abertas = cobrancas.filter((c) => c.status === "aberta");
   const atrasadas = abertas.filter((c) => c.vencimento < hoje);
   const aReceber = abertas.reduce((a, c) => a + saldo(c), 0);

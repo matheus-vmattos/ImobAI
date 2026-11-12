@@ -1,3 +1,4 @@
+import { hojeSP, mesSP } from "@/lib/format";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calcularRepasses, mesDe, type DescontoRepasse, type ImovelRepasse } from "@/lib/repasse";
 import { garantirAlugueis } from "../alugueis/dados";
@@ -19,7 +20,7 @@ export async function calcularPrevia(supabase: SupabaseClient, competencia: stri
       .select("id, identificacao, endereco, taxa_adm_pct, seguro_incendio_mensal, condominios(nome), imovel_proprietarios(proprietario_id, percentual), contratos(id, aluguel, inicio, fim, inquilino)")
       .lte("contratos.inicio", fim).gte("contratos.fim", ini),
     supabase.from("despesa_itens").select("id, proprietario_id, imovel_id, valor, taxa_adm, despesas!inner(descricao, status)")
-      .eq("decisao", "desconto").is("repasse_id", null).eq("despesas.status", "enviada"),
+      .eq("decisao", "desconto").eq("responsavel", "proprietario").is("repasse_id", null).eq("despesas.status", "enviada"),
     supabase.from("alugueis").select("contrato_id, valor_recebido").eq("competencia", ini),
   ]);
   // só entra no repasse o aluguel que o inquilino pagou
@@ -43,7 +44,7 @@ export async function calcularPrevia(supabase: SupabaseClient, competencia: stri
 async function incluirCobrancasVencidas<T extends ReturnType<typeof calcularRepasses>[number] & { cobrancas: { id: string; saldo: number }[] }>(supabase: SupabaseClient, previa: T[]) {
   const ids = previa.map((r) => r.proprietarioId);
   if (!ids.length) return previa;
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeSP();
   const [{ data: cs }, { data: ps }] = await Promise.all([
     supabase.from("cobrancas").select("id, pagador_id, inicio, fim, total, pago, abonado, descontado").eq("status", "aberta").lt("vencimento", hoje).in("pagador_id", ids),
     supabase.from("proprietarios").select("id, desconta_vencidas").in("id", ids),
@@ -64,4 +65,4 @@ async function incluirCobrancasVencidas<T extends ReturnType<typeof calcularRepa
 }
 
 /** "2026-11" do mês corrente, ou o informado se for válido. */
-export const competenciaOu = (mes?: string) => (mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? mes : new Date().toISOString().slice(0, 7));
+export const competenciaOu = (mes?: string) => (mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? mes : mesSP());

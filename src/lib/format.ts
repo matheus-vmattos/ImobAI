@@ -7,16 +7,16 @@ export const BRL0 = (n: number | null | undefined) => (n == null ? "—" : brl0.
 /** "2026-12-15" → "15/12/2026" */
 export const data = (iso: string | null | undefined) => {
   if (!iso) return "—";
-  const [y, m, d] = iso.slice(0, 10).split("-");
+  // data com hora (gravada em UTC) é mostrada no dia de São Paulo
+  const [y, m, d] = diaSP(iso).split("-");
   return `${d}/${m}/${y}`;
 };
 
 /** Dias de hoje até a data (negativo se já passou) */
 export const diasAte = (iso: string) => {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
-  return Math.round((new Date(y, m - 1, d).getTime() - hoje.getTime()) / 864e5);
+  const [hy, hm, hd] = hojeSP().split("-").map(Number);
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(hy, hm - 1, hd)) / 864e5);
 };
 
 export const RENOVACAO_DIAS = 90;
@@ -41,4 +41,11 @@ export const mesRelativo = (mes: string, d: number) => {
 };
 
 /** "2026-11" do mês atual, ou o informado se for válido. */
-export const mesOu = (mes?: string) => (mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? mes : new Date().toISOString().slice(0, 7));
+export const mesOu = (mes?: string) => (mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? mes : mesSP());
+
+/** Hoje em São Paulo ("2026-11-12"). O servidor roda em UTC: depois das 21h, a data UTC já é a de amanhã. */
+export const hojeSP = (agora = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
+/** Dia de São Paulo de uma data: "2026-11-12T01:30:00Z" → "2026-11-11"; data sem hora fica como está. */
+export const diaSP = (iso: string) => (iso.length > 10 ? hojeSP(new Date(iso)) : iso);
+/** Mês atual em São Paulo ("2026-11"). */
+export const mesSP = (agora = new Date()) => hojeSP(agora).slice(0, 7);

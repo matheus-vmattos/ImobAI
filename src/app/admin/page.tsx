@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { exigirAdmin } from "@/lib/auth";
-import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS, hojeSP } from "@/lib/format";
 import { Icon } from "@/components/Icon";
 import { RENOVACAO_LABEL, type Imovel, type Renovacao } from "@/lib/types";
 
@@ -11,7 +11,7 @@ type ContratoLista = {
 
 export default async function AdminHome() {
   const { supabase } = await exigirAdmin();
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeSP();
   const [{ data: imoveis }, { count: nProp }, { count: nCond }, { data: contratos }, { data: pags }, { data: rens }, { data: atrasadas }, { data: alAtras }, { count: rascunhos }] = await Promise.all([
     supabase.from("imoveis").select("status"),
     supabase.from("proprietarios").select("*", { count: "exact", head: true }),

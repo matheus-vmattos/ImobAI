@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSessao } from "@/lib/auth";
 import type { LinhaCobranca } from "@/lib/contaCorrente";
-import { BRL, data } from "@/lib/format";
+import { BRL, data, hojeSP } from "@/lib/format";
 import { saldoCobranca, type CobrancaPortal } from "../../conta";
 import { DadosPagamento } from "../../DadosPagamento";
 
@@ -17,7 +17,7 @@ export default async function CobrancaPortal({ params }: { params: Promise<{ id:
   const grupos = new Map<string, LinhaCobranca[]>();
   c.linhas.forEach((l) => { const k = l.onde.split(" · ")[0] || "Outros"; grupos.set(k, [...(grupos.get(k) ?? []), l]); });
   const saldo = saldoCobranca(c);
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeSP();
   const pill = c.status === "paga" ? ["paga", "Paga"] : c.vencimento < hoje ? ["bad", "Vencida"] : ["warn", "A pagar"];
 
   return (

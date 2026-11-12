@@ -22,25 +22,13 @@ export async function fecharRepasse(form: FormData) {
 
   const ids: string[] = [];
   for (const r of previa) {
-    const { data, error } = await supabase.from("repasses").insert({
-      proprietario_id: r.proprietarioId, competencia: `${mes}-01`,
-      aluguel: r.aluguel, taxa_adm: r.taxa, seguro: r.seguro, despesas: r.despesas, liquido: r.liquido,
-      linhas: r.linhas, created_by: user.id,
-    }).select("id").single();
-    if (error) voltar(mes, { erro: error.message });
-    ids.push(data!.id);
-    // cobranças vencidas que saíram do repasse ficam quitadas por ele
-    for (const c of r.cobrancas) {
-      const { data: atual } = await supabase.from("cobrancas").select("descontado").eq("id", c.id).single();
-      await supabase.from("cobrancas").update({
-        descontado: Math.round((Number(atual?.descontado ?? 0) + c.saldo) * 100) / 100, status: "paga", quitada_em: new Date().toISOString(), repasse_id: data!.id,
-      }).eq("id", c.id);
-    }
-    if (r.itens.length) {
-      const { error: e2 } = await supabase.from("despesa_itens")
-        .update({ repasse_id: data!.id, repassado_em: new Date().toISOString() }).in("id", r.itens).is("repasse_id", null);
-      if (e2) voltar(mes, { erro: e2.message });
-    }
+    // uma transação por proprietário: ou fecha tudo (repasse, contas, cobranças vencidas) ou nada
+    const { data, error } = await supabase.rpc("fechar_repasse", {
+      p_proprietario: r.proprietarioId, p_competencia: `${mes}-01`, p_aluguel: r.aluguel, p_taxa: r.taxa, p_seguro: r.seguro,
+      p_despesas: r.despesas, p_liquido: r.liquido, p_linhas: r.linhas, p_itens: r.itens, p_cobrancas: r.cobrancas, p_user: user.id,
+    });
+    if (error) voltar(mes, { erro: (ids.length ? `${ids.length} fechado(s) antes do erro. ` : "") + error.message });
+    ids.push(data as string);
   }
   if (ids.length) after(() => avisos.repasseFechado(ids));
   revalidatePath("/admin", "layout");
@@ -50,16 +38,12 @@ export async function fecharRepasse(form: FormData) {
 
 /** Desfaz um repasse fechado: as despesas voltam a ficar pendentes de desconto. */
 export async function reabrirRepasse(form: FormData) {
-  const { supabase } = await exigirAdmin();
+  const { supabase, user } = await exigirAdmin();
   const id = String(form.get("id"));
   const { data: r } = await supabase.from("repasses").select("competencia").eq("id", id).single();
   const mes = String(r?.competencia ?? "").slice(0, 7);
-  const { error } = await supabase.from("despesa_itens").update({ repasse_id: null, repassado_em: null }).eq("repasse_id", id);
-  // cobranças que este repasse quitou voltam a ficar em aberto
-  await supabase.from("cobrancas").update({ descontado: 0, status: "aberta", quitada_em: null, repasse_id: null }).eq("repasse_id", id);
+  const { error } = await supabase.rpc("reabrir_repasse", { p_id: id, p_user: user.id });
   if (error) voltar(mes, { erro: error.message });
-  const { error: e2 } = await supabase.from("repasses").delete().eq("id", id);
-  if (e2) voltar(mes, { erro: e2.message });
   revalidatePath("/admin", "layout");
   revalidatePath("/portal", "layout");
   voltar(mes, { ok: "Repasse reaberto." });

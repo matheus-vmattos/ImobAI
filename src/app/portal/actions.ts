@@ -1,5 +1,6 @@
 "use server";
 
+import { hojeSP } from "@/lib/format";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -89,7 +90,7 @@ export async function informarPagamento(form: FormData) {
     const forma = String(form.get("forma"));
     // gravação pelo servidor depois de conferir o dono (o RLS só deixa o proprietário ler)
     const { data, error } = await createServiceClient().from("pagamentos").insert({
-      pagador_id: pagador, valor, data: texto(form, "data") ?? new Date().toISOString().slice(0, 10),
+      pagador_id: pagador, valor, data: texto(form, "data") ?? hojeSP(),
       forma: FORMAS.includes(forma) ? forma : "outro", comprovantes, observacao: texto(form, "observacao"), informado_por: "proprietario",
     }).select("id").single();
     if (error) throw new Error(error.message);

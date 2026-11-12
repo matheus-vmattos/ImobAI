@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Icon } from "@/components/Icon";
 import { getSessao } from "@/lib/auth";
-import { BRL, data, nomeMes } from "@/lib/format";
+import { BRL, data, nomeMes, hojeSP, diaSP } from "@/lib/format";
 import { MARCA } from "@/lib/marca";
 import { carregarConta, saldoCobranca } from "../conta";
 import { DadosPagamento } from "../DadosPagamento";
@@ -19,16 +19,16 @@ export default async function Extrato({ searchParams }: { searchParams: Promise<
     supabase.from("repasses").select("id, competencia, liquido, fechado_em, linhas").order("fechado_em", { ascending: false }).limit(60),
   ]);
   const filtro = ver === "recebi" || ver === "paguei" ? ver : "tudo";
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeSP();
 
   // o que recebeu (repasses fechados) e o que pagou (contas da semana), num lugar só
   const movs: Mov[] = [
     ...((reps ?? []) as { id: string; competencia: string; liquido: number; fechado_em: string; linhas: { tipo: string }[] }[]).map((r) => ({
-      data: r.fechado_em, tipo: "recebimento", descricao: `Você recebeu os aluguéis de ${nomeMes(r.competencia.slice(0, 7)).split("/")[0]}`,
+      data: diaSP(r.fechado_em), tipo: "recebimento", descricao: `Você recebeu os aluguéis de ${nomeMes(r.competencia.slice(0, 7)).split("/")[0]}`,
       valor: Number(r.liquido), href: `/portal/repasses/${r.id}`, sub: `${r.linhas.filter((l) => l.tipo === "aluguel").length} aluguéis · ver detalhes`,
     })),
     ...conta.extrato.movimentos.map((m) => ({
-      data: m.data, tipo: m.tipo, descricao: m.descricao, valor: m.valor,
+      data: diaSP(m.data), tipo: m.tipo, descricao: m.descricao, valor: m.valor,
       href: m.tipo === "cobranca" ? `/portal/cobrancas/${m.ref}` : undefined, sub: data(m.data),
     })),
   ].filter((m) => filtro === "tudo" || (filtro === "recebi" ? m.tipo === "recebimento" : m.tipo !== "recebimento"))
