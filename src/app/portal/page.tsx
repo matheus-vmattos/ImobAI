@@ -77,9 +77,9 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
 
           <div className="kpis" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
             <Link href={recebe.repasseId ? `/portal/repasses/${recebe.repasseId}` : "/portal/extrato?ver=recebi"} className="kpi saldo" style={{ textDecoration: "none", padding: 16 }}>
-              <span className="label">Você recebe</span>
-              <span className="v" style={{ color: recebe.valor > 0 ? "var(--ok)" : undefined, fontSize: 24 }}>{BRL0(Math.max(0, recebe.valor))}</span>
-              <small>{recebe.fechado ? "fechado" : "previsto"} para {recebe.dia}{recebe.total ? ` · ${recebe.pagos} de ${recebe.total} aluguéis já pagos` : ""}
+              <span className="label">Você recebe{!recebe.fechado && " · estimativa"}</span>
+              <span className="v" style={{ color: recebe.valor > 0 ? "var(--ok)" : undefined, fontSize: 24 }}>{recebe.fechado ? "" : "≈ "}{BRL0(Math.max(0, recebe.valor))}</span>
+              <small>{recebe.fechado ? `fechado para ${recebe.dia}` : `estimativa para ${recebe.dia} · aluguéis menos taxa e contas; o valor final vem no repasse`}{recebe.total ? ` · ${recebe.pagos} de ${recebe.total} aluguéis já pagos` : ""}
                 {recebe.valor < 0 ? ` · até agora as contas e o seguro superam os aluguéis pagos em ${BRL0(-recebe.valor)}` : ""}</small>
             </Link>
             <Link href="/portal/extrato?ver=paguei" className="kpi" style={{ textDecoration: "none" }}>

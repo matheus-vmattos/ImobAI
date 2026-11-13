@@ -116,7 +116,7 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
               </div>
             </div>
           ) : <p className="muted small" style={{ margin: 0 }}>Sem valores para este mês.</p>}
-          <small className="muted">Estimativa do mês. Já tira a taxa da imobiliária, o seguro e as contas que você escolheu descontar.
+          <small className="muted">Estimativa do mês: aluguel menos a taxa da imobiliária, o seguro e as contas que você escolheu descontar. O valor final vem no repasse.
             {doMes && !doMes.s.recebidoEm ? " O aluguel só entra depois que o inquilino pagar." : ""}</small>
         </div>
       </div>
