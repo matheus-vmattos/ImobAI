@@ -36,6 +36,7 @@ export type Condominio = {
   iptu_inscricao: string | null;
   energia_cliente: string | null;
   agua_cliente: string | null;
+  inquilino_reembolsa: boolean;
 };
 
 export type Imovel = {

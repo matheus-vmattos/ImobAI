@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Icon } from "@/components/Icon";
 import { getSessaoPortal } from "@/lib/auth";
-import { BRL, BRL0, data, diasAte, prazoTxt, RENOVACAO_DIAS } from "@/lib/format";
+import { BRL, BRL0, data, diasAte, mesSP, prazoTxt, RENOVACAO_DIAS } from "@/lib/format";
 import { MARCA } from "@/lib/marca";
 import type { Renovacao } from "@/lib/types";
 import { carregarConta } from "./conta";
@@ -19,7 +19,7 @@ const saudacao = () => {
 export default async function Portal({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
   const { supabase, proprietarioIds, cadastros } = await getSessaoPortal();
-  const [{ imoveis, condominios }, { pendentes }, { data: rens }, conta, recebe] = await Promise.all([
+  const [{ imoveis, condominios }, { pendentes, despesas }, { data: rens }, conta, recebe] = await Promise.all([
     carregarPortal(supabase, proprietarioIds),
     carregarDespesas(supabase),
     supabase.from("renovacoes").select("contrato_id"),
@@ -44,6 +44,9 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
   const lista = predios(imoveis, condominios);
   const atrasados = imoveis.filter((i) => i.aluguelMes?.situacao === "atrasado");
   const vagos = imoveis.filter((i) => i.status === "vazio");
+  // contas lançadas neste mês: quanto é seu, quanto volta pelos inquilinos no repasse
+  const doMes = despesas.filter((d) => (d.enviadaEm ?? "").slice(0, 7) === mesSP() && d.rateada !== null);
+  const contasMes = { total: doMes.reduce((a, d) => a + d.total, 0), volta: doMes.reduce((a, d) => a + d.volta, 0), n: doMes.length };
   const { data: pagadores } = await supabase.rpc("meus_pagadores_nomes");
   const pagoPor = ((pagadores ?? []) as { pagador: string }[])[0]?.pagador;
 
@@ -89,9 +92,17 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
             </Link>
           </div>
 
-          {(atrasados.length > 0 || vagos.length > 0) && (
+          {(atrasados.length > 0 || vagos.length > 0 || contasMes.n > 0) && (
             <section className="box">
               <div className="wk">Para você saber</div>
+              {contasMes.n > 0 && (
+                <Link href="/portal/decidir#historico" className="mv" style={{ textDecoration: "none" }}>
+                  <span className="ic accent"><Icon name="receipt" /></span>
+                  <span className="t"><b>Contas do mês: {BRL0(contasMes.total)}</b>
+                    <small>{BRL0(contasMes.volta)} voltam pelos inquilinos no repasse · custo seu {BRL0(contasMes.total - contasMes.volta)} · {contasMes.n} {contasMes.n === 1 ? "conta" : "contas"}</small></span>
+                  <Icon name="chev" className="dim" />
+                </Link>
+              )}
               {atrasados.length > 0 && (
                 <Link href="/portal/imoveis?ver=atrasados" className="mv" style={{ textDecoration: "none" }}>
                   <span className="ic bad"><Icon name="alert" /></span>

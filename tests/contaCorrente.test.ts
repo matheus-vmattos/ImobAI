@@ -58,3 +58,22 @@ test("extrato do mesmo dia: abono, pagamento e cobrança nessa ordem", () => {
   });
   assert.deepEqual(e.movimentos.map((m) => m.tipo), ["abono", "pagamento", "cobranca"]);
 });
+
+test("prédio em que o inquilino reembolsa: o proprietário paga tudo e a parte da unidade alugada volta", async () => {
+  const { responsavelPor, rateadaPadrao, voltaPeloInquilino } = await import("../src/lib/contaCorrente.ts");
+  // sem o modelo: condomínio de imóvel alugado é do inquilino
+  assert.equal(responsavelPor("condominio", "locado", "imobiliaria"), "inquilino");
+  // com o modelo: o proprietário paga e o inquilino devolve no repasse
+  assert.equal(responsavelPor("condominio", "locado", "imobiliaria", true), "proprietario");
+  assert.equal(responsavelPor("iptu", "locado", "imobiliaria", true), "proprietario");
+  assert.equal(responsavelPor("condominio", "locado", "proprietario", true), "direto");
+  // tudo volta, menos obras e extras
+  assert.equal(rateadaPadrao("manutencao", true), true);
+  assert.equal(rateadaPadrao("extra", true), false);
+  assert.equal(rateadaPadrao("condominio_extra", true), false);
+  assert.equal(rateadaPadrao("manutencao", false), false);
+  assert.equal(voltaPeloInquilino(true, "locado"), true);
+  assert.equal(voltaPeloInquilino(true, "devolucao"), true);
+  assert.equal(voltaPeloInquilino(true, "vazio"), false);
+  assert.equal(voltaPeloInquilino(false, "locado"), false);
+});

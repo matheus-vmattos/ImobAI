@@ -8,12 +8,20 @@ export type Responsavel = "proprietario" | "inquilino" | "direto";
 
 /** Condomínio ordinário e IPTU de imóvel locado são do inquilino; condomínio que o dono paga direto
  *  fica só registrado; o resto (extra, manutenção, contas da área comum) é do proprietário. */
-export function responsavelPor(tipo: string, statusImovel: string, condominioPagoPor: "imobiliaria" | "proprietario"): Responsavel {
+export function responsavelPor(tipo: string, statusImovel: string, condominioPagoPor: "imobiliaria" | "proprietario", inquilinoReembolsa = false): Responsavel {
   const ehCondominio = tipo === "condominio" || tipo === "condominio_extra";
   if (ehCondominio && condominioPagoPor === "proprietario") return "direto";
+  // prédio em que o proprietário paga tudo e o inquilino devolve a parte dele no repasse
+  if (inquilinoReembolsa) return "proprietario";
   if ((tipo === "condominio" || tipo === "iptu") && (statusImovel === "locado" || statusImovel === "devolucao")) return "inquilino";
   return "proprietario";
 }
+
+/** Obras e extras ficam com o proprietário; o resto, num prédio em que o inquilino reembolsa, é rateado com os inquilinos. */
+export const TIPOS_DO_PROPRIETARIO = ["extra", "condominio_extra"];
+export const rateadaPadrao = (tipo: string, inquilinoReembolsa: boolean) => inquilinoReembolsa && !TIPOS_DO_PROPRIETARIO.includes(tipo);
+/** A parte desta unidade volta pelo inquilino? Só se a despesa é rateada e a unidade está alugada. */
+export const voltaPeloInquilino = (rateada: boolean, statusImovel: string) => rateada && (statusImovel === "locado" || statusImovel === "devolucao");
 
 /* ---------- decisão automática ---------- */
 export type Decisao = "desconto" | "reembolso" | "proprio";

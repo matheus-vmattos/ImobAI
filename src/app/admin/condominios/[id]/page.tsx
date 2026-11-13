@@ -54,6 +54,8 @@ export default async function EditarCondominio({ params, searchParams }: {
           <input id="agua_cliente" name="agua_cliente" defaultValue={c?.agua_cliente ?? ""} /></div>
       </div>
       <small className="muted" style={{ marginTop: -8 }}>Valem para todas as unidades. O proprietário vê no portal, em cada imóvel.</small>
+      <label className="tog"><input type="checkbox" name="inquilino_reembolsa" defaultChecked={c?.inquilino_reembolsa ?? true} />
+        <span>O proprietário paga as contas e o inquilino reembolsa<small>A parte de cada unidade alugada volta pelo inquilino no repasse. Obras e extras ficam com o proprietário.</small></span></label>
           <div className="field"><label className="label" htmlFor="observacoes">Observações</label><textarea id="observacoes" name="observacoes" defaultValue={c.observacoes ?? ""} /></div>
           <div className="actions"><button className="btn primary">Salvar</button></div>
         </form>

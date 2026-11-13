@@ -109,3 +109,18 @@ export async function informarPagamento(form: FormData) {
   revalidatePath("/", "layout");
   redirect(`/portal/extrato?${new URLSearchParams({ ok: "Comprovante enviado. A imobiliária vai conferir e dar baixa." })}`);
 }
+
+/** O proprietário questiona uma despesa (a imobiliária responde no admin). */
+export async function questionarDespesa(form: FormData) {
+  const { supabase, user, proprietarioIds } = await sessaoDoProprietario();
+  const despesa = String(form.get("despesa_id") ?? "");
+  const textoQ = String(form.get("texto") ?? "").trim().slice(0, 1000);
+  const volta = String(form.get("voltar") ?? "/portal/decidir").startsWith("/portal") ? String(form.get("voltar")) : "/portal/decidir";
+  if (!textoQ) redirect(`${volta}?erro=${encodeURIComponent("Escreva sua dúvida.")}`);
+  const { data: it } = await supabase.from("despesa_itens").select("proprietario_id").eq("despesa_id", despesa).in("proprietario_id", proprietarioIds).limit(1).maybeSingle();
+  if (!it) redirect(`${volta}?erro=${encodeURIComponent("Despesa não encontrada.")}`);
+  const { error } = await supabase.from("despesa_questionamentos").insert({ despesa_id: despesa, proprietario_id: it.proprietario_id, user_id: user.id, texto: textoQ });
+  if (error) redirect(`${volta}?erro=${encodeURIComponent(error.message)}`);
+  revalidatePath("/", "layout");
+  redirect(`${volta}?ok=${encodeURIComponent("Enviado. A imobiliária vai responder por aqui.")}`);
+}

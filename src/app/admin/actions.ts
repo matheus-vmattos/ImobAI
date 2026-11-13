@@ -136,6 +136,7 @@ export async function salvarCondominio(form: FormData) {
       iptu_inscricao: texto(form, "iptu_inscricao"),
       energia_cliente: texto(form, "energia_cliente"),
       agua_cliente: texto(form, "agua_cliente"),
+      inquilino_reembolsa: form.get("inquilino_reembolsa") === "on",
     };
     if (id) {
       checar((await supabase.from("condominios").update(dados).eq("id", id)).error);

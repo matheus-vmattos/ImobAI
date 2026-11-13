@@ -5,14 +5,16 @@ type ItemRow = {
   id: string; imovel_id: string; cotas: number | null; percentual_dono: number; valor: number; taxa_adm: number;
   decisao: Decisao | null; comentario: string | null; reembolso: StatusReembolso | null; reembolso_confirmado_em: string | null;
   respondido_em: string | null; repassado_em: string | null;
-  responsavel: string; decidido_auto: boolean; cobranca_id: string | null; repasse_id: string | null; cobrancas: { status: string } | null;
+  responsavel: string; decidido_auto: boolean; volta_inquilino: boolean; cobranca_id: string | null; repasse_id: string | null; cobrancas: { status: string } | null;
   imoveis: { identificacao: string; endereco: string | null };
   despesas: {
     id: string; descricao: string; tipo: TipoDespesa; competencia: string | null; valor_total: number; regra: string; divisor: number | null;
     prazo: string | null; enviada_em: string | null; pdf_path: string | null; cobra_taxa_adm: boolean;
-    condominio_id: string | null; condominios: { nome: string } | null;
+    condominio_id: string | null; condominios: { nome: string; inquilino_reembolsa: boolean } | null; rateada_inquilinos: boolean;
+    imoveis: { condominios: { inquilino_reembolsa: boolean } | null } | null;
   };
 };
+export type Questionamento = { id: string; texto: string; created_at: string; resposta: string | null; respondido_em: string | null };
 
 /** Uma despesa do ponto de vista do proprietário: soma dos itens dele (pode ter várias unidades). */
 export type DespesaPortal = {
@@ -25,11 +27,19 @@ export type DespesaPortal = {
   /** quando outra pessoa paga as contas deste cadastro (ex.: o irmão sócio) */
   pagoPor: string | null;
   situacao: Situacao; comentario: string | null; confirmadoEm: string | null; respondidoEm: string | null;
+  /** marca da imobiliária: true = rateada com os inquilinos, false = despesa do proprietário, null = prédio sem esse modelo */
+  rateada: boolean | null;
+  /** quanto da parte dele volta pelos inquilinos no repasse */
+  volta: number;
+  questionamentos: Questionamento[];
 };
 
 export async function carregarDespesas(supabase: SupabaseClient) {
   const { data } = await supabase.from("despesa_itens")
-    .select("*, cobrancas(status), imoveis(identificacao, endereco), despesas(id, descricao, tipo, competencia, valor_total, regra, divisor, prazo, enviada_em, pdf_path, cobra_taxa_adm, condominio_id, condominios(nome))");
+    .select("*, cobrancas(status), imoveis(identificacao, endereco), despesas(id, descricao, tipo, competencia, valor_total, regra, divisor, prazo, enviada_em, pdf_path, cobra_taxa_adm, condominio_id, rateada_inquilinos, condominios(nome, inquilino_reembolsa), imoveis(condominios(inquilino_reembolsa)))");
+  const { data: qs } = await supabase.from("despesa_questionamentos").select("id, despesa_id, texto, created_at, resposta, respondido_em").order("created_at");
+  const perguntas = new Map<string, Questionamento[]>();
+  for (const q of (qs ?? []) as (Questionamento & { despesa_id: string })[]) perguntas.set(q.despesa_id, [...(perguntas.get(q.despesa_id) ?? []), q]);
   const rows = (data ?? []) as unknown as ItemRow[];
   // cobranças onde minhas contas entraram, inclusive as de outro pagador (que o RLS não me deixa ler)
   const { data: cob } = await supabase.rpc("minhas_contas_cobradas");
@@ -62,6 +72,9 @@ export async function carregarDespesas(supabase: SupabaseClient) {
       pagoPor: (() => { const c = its[0].cobranca_id ? cobranca.get(its[0].cobranca_id) : null; return c && !c.eh_meu ? c.pagador : null; })(),
       travada: its.some((i) => i.cobranca_id || i.repasse_id || i.reembolso === "confirmado"),
       situacao: situacao(its[0]), comentario: its[0].comentario, confirmadoEm: its[0].reembolso_confirmado_em, respondidoEm: its[0].respondido_em,
+      rateada: (d.condominios?.inquilino_reembolsa ?? d.imoveis?.condominios?.inquilino_reembolsa) ? d.rateada_inquilinos : null,
+      volta: its.filter((i) => i.volta_inquilino).reduce((a, i) => a + Number(i.valor) + Number(i.taxa_adm), 0),
+      questionamentos: perguntas.get(d.id) ?? [],
     };
   }).sort((a, b) => (b.enviadaEm ?? "").localeCompare(a.enviadaEm ?? ""));
 

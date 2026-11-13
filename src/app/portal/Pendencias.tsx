@@ -1,3 +1,4 @@
+import { MarcaDespesa } from "./MarcaDespesa";
 import { BRL, data } from "@/lib/format";
 import { SITUACAO_LABEL } from "@/lib/types";
 import { descontarTodas, informarReembolso, responderDespesa } from "./actions";
@@ -51,6 +52,7 @@ function Item({ d }: { d: DespesaPortal }) {
       <div className="pi-v"><span className="v">{BRL(d.total)}</span><small>{d.regraTxt} · conta {BRL(d.valorTotal)}</small></div>
       {d.unidades.length > 1 && <div className="chips">{d.unidades.slice(0, 6).map((u) => <span className="chip" key={u.imovelId}>{u.nome} · {BRL(u.valor)}</span>)}
         {d.unidades.length > 6 && <span className="chip">+{d.unidades.length - 6}</span>}</div>}
+      <div><MarcaDespesa d={d} voltar="/portal/decidir" /></div>
 
       {aguardando ? (
         <form action={responderDespesa} className="pi-a">

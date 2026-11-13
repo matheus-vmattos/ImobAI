@@ -19,6 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ...(controla ? [{ href: "/admin/alugueis", label: "Aluguéis", icon: "bank", grupo: "Financeiro" } as NavItem] : []),
     { href: "/admin/despesas", label: "Despesas", icon: "receipt", grupo: "Financeiro" },
     { href: "/admin/cobrancas", label: "Cobranças", icon: "coins", grupo: "Financeiro", badge: conferir ?? 0 },
+    { href: "/admin/inquilinos", label: "A cobrar dos inquilinos", icon: "users", grupo: "Financeiro" },
     { href: "/admin/repasses", label: "Repasses", icon: "wallet", grupo: "Financeiro" },
     { href: "/admin/notificacoes", label: "E-mails", icon: "mail", grupo: "Imobiliária" },
     { href: "/admin/importar", label: "Importar carteira", icon: "upload", grupo: "Imobiliária" },

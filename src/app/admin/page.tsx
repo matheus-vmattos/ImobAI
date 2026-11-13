@@ -13,7 +13,7 @@ type ContratoLista = {
 export default async function AdminHome() {
   const { supabase } = await exigirAdmin();
   const hoje = hojeSP();
-  const [{ data: imoveis }, { count: nProp }, { count: nCond }, { data: contratos }, { data: pags }, { data: rens }, { data: atrasadas }, { data: alAtras }, { count: rascunhos }] = await Promise.all([
+  const [{ data: imoveis }, { count: nProp }, { count: nCond }, { data: contratos }, { data: pags }, { data: rens }, { data: atrasadas }, { data: alAtras }, { count: rascunhos }, { data: perguntas }] = await Promise.all([
     supabase.from("imoveis").select("status"),
     supabase.from("proprietarios").select("*", { count: "exact", head: true }),
     supabase.from("condominios").select("*", { count: "exact", head: true }),
@@ -25,7 +25,9 @@ export default async function AdminHome() {
     supabase.from("cobrancas").select("total, pago, abonado, descontado").eq("status", "aberta").lt("vencimento", hoje),
     (await controlaAlugueis(supabase)) ? supabase.from("alugueis").select("valor").is("recebido_em", null).lt("vencimento", hoje).gte("competencia", hoje.slice(0, 8) + "01") : Promise.resolve({ data: [] }),
     supabase.from("despesas").select("*", { count: "exact", head: true }).eq("status", "rascunho").eq("valor_total", 0),
+    supabase.from("despesa_questionamentos").select("id, despesa_id, texto, proprietarios(nome)").is("resposta", null).order("created_at"),
   ]);
+  const semResposta = (perguntas ?? []) as unknown as { id: string; despesa_id: string; texto: string; proprietarios: { nome: string } }[];
   const respostas = (rens ?? []) as Pick<Renovacao, "contrato_id" | "decisao" | "valor_proposto">[];
   const resposta = (contratoId: string) => {
     const rs = respostas.filter((r) => r.contrato_id === contratoId);
@@ -35,6 +37,7 @@ export default async function AdminHome() {
   const comprovantes = (pags ?? []) as unknown as { id: string; valor: number; created_at: string; proprietarios: { nome: string } }[];
   const atrasado = (atrasadas ?? []).reduce((a, c) => a + Number(c.total) - Number(c.pago) - Number(c.abonado) - Number(c.descontado), 0);
   const tarefas = [
+    ...semResposta.map((q) => ({ k: q.id, ic: "alert", cls: "warn", t: `${q.proprietarios.nome} questionou uma despesa`, s: `“${q.texto.slice(0, 90)}”`, href: `/admin/despesas/${q.despesa_id}#questionamentos`, acao: "Responder" })),
     ...comprovantes.map((p) => ({ k: p.id, ic: "coins", cls: "dev", t: `${p.proprietarios.nome} enviou comprovante`, s: `${BRL(p.valor)} · ${data(p.created_at)}`, href: `/admin/cobrancas/pagamento/${p.id}`, acao: "Conferir" })),
     ...((atrasadas ?? []).length ? [{ k: "cob", ic: "alert", cls: "bad", t: `${(atrasadas ?? []).length} cobrança(s) vencida(s)`, s: `${BRL(atrasado)} em aberto`, href: "/admin/cobrancas?ver=atrasadas", acao: "Ver" }] : []),
     ...((alAtras ?? []).length ? [{ k: "alu", ic: "bank", cls: "warn", t: `${(alAtras ?? []).length} aluguel(éis) atrasado(s) neste mês`, s: `${BRL((alAtras ?? []).reduce((a, x) => a + Number(x.valor), 0))} sem pagamento do inquilino`, href: "/admin/alugueis?ver=atrasado", acao: "Ver" }] : []),

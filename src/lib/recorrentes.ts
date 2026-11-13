@@ -1,3 +1,4 @@
+import { marcaRateio } from "@/lib/decisoes";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import * as avisos from "@/lib/avisos";
 import { lancar } from "@/lib/lancamento";
@@ -31,6 +32,7 @@ export async function lancarRecorrentes(db: SupabaseClient, hojeISO: string, soI
         condominio_id: rec.imovel_id ? null : rec.condominio_id, imovel_id: rec.imovel_id, tipo: rec.tipo, descricao: rec.descricao, competencia,
         valor_total: 0, regra: rec.imovel_id ? "integral" : rec.regra, divisor: rec.divisor, unidades: rec.unidades,
         cobra_taxa_adm: rec.cobra_taxa_adm, status: "rascunho", recorrente_id: rec.id, competencia_mes: mesIni,
+        rateada_inquilinos: await marcaRateio(db, { condominioId: rec.imovel_id ? null : rec.condominio_id, imovelId: rec.imovel_id }, rec.tipo),
       });
       if (error) throw new Error(error.message);
       rascunhos++;

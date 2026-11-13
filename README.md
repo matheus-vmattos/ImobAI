@@ -25,6 +25,7 @@ Banco de imóveis de proprietários com portal web. A imobiliária cadastra prop
    - **Dinheiro:** confirmar pagamento, emitir cobrança e fechar ou reabrir repasse são funções do banco (uma transação cada). A resposta do proprietário trava depois de cobrada. Toda operação fica em **Admin → Atividade** (quem, quando, quanto), sem edição.
    - **Datas** no horário de São Paulo; dia do repasse configurável.
    - **Portal:** aluguel do mês pago, a receber ou atrasado; imóvel vago há quantos dias; histórico de cada unidade; sócio vê se a parte dele foi paga e por quem; telas de espera e botões que não aceitam clique duplo.
+   - **Contas que voltam pelo inquilino** (migração `0012`): no condomínio marcado "o proprietário paga e o inquilino reembolsa", o proprietário paga 100% pela cobrança semanal e a parte de cada unidade alugada volta pelo inquilino no repasse. Toda despesa leva uma marca visível ao proprietário: **será rateada** (padrão) ou **do proprietário** (obras e extras); a imobiliária pode trocar. O proprietário pode **questionar** a despesa e a resposta aparece no portal. **A cobrar dos inquilinos** lista a parte de cada unidade por mês, para lançar no boleto e marcar.
    - **Visão do proprietário** (**Admin → Visão do proprietário** ou "Ver o portal como ele vê" no cadastro): abre o portal exatamente como o proprietário vê, só leitura. O servidor manda o cabeçalho `x-ver-como` e o banco (`ver_como()`, migração `0011`) aplica as regras de acesso daquele proprietário.
    - **Aluguel sem controle de pago/atrasado** (padrão): o recebimento fica no ERP da imobiliária; o portal mostra só o valor e o repasse usa o contrato. Dá para ligar em Configurações.
    - **Contratos vencidos** e **que vencem em até 90 dias**: filtros em Imóveis, com a decisão do proprietário (aguardando, renovar, novo valor, não renovar).
@@ -36,7 +37,7 @@ O design segue `prototipo/v2/` (maquetes em HTML; gere os `.html` a partir dos `
 
 ### 1. Criar o projeto no Supabase
 1. Crie um projeto em https://supabase.com (plano gratuito serve).
-2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…` a `0011_…`). O `0002` cria o bucket privado `despesas` para os PDFs e o `0005`, o bucket `comprovantes`.
+2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…` a `0012_…`). O `0002` cria o bucket privado `despesas` para os PDFs e o `0005`, o bucket `comprovantes`.
 3. (Opcional) Rode `supabase/seed.sql` para ter dados de exemplo.
 4. Em **Authentication → URL Configuration**, coloque a URL do app em *Site URL* e adicione `https://SEU-APP/auth/confirm` em *Redirect URLs* (e `http://localhost:3000/auth/confirm` para testar local).
 5. (Opcional) Os e-mails padrão de convite e de redefinição de senha já funcionam: o app abre a sessão em `/auth/sessao`. Para personalizá-los, configure um SMTP próprio (exigido no plano grátis) e, em **Authentication → Email Templates**, use o link:

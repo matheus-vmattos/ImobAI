@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { carregarCarteira } from "@/app/admin/despesas/dados";
-import { aplicarDecisoesAutomaticas, responsaveis } from "@/lib/decisoes";
+import { aplicarDecisoesAutomaticas, marcaRateio, responsaveis } from "@/lib/decisoes";
 import { calcularRateio, distribuir, type Regra, type UnidadeRateio } from "@/lib/rateio";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -56,12 +56,12 @@ export async function ratear(db: SupabaseClient, d: Destino, total: number, cobr
   return { r, regra, divisor, unidades: unidades.map((u) => ({ imovelId: u.imovelId, quantidade: u.quantidade })) };
 }
 
-export async function gravarItens(db: SupabaseClient, despesaId: string, tipo: string, itens: Awaited<ReturnType<typeof ratear>>["r"]["itens"]) {
-  const resp = await responsaveis(db, tipo, itens.map((i) => i.imovelId));
+export async function gravarItens(db: SupabaseClient, despesaId: string, tipo: string, itens: Awaited<ReturnType<typeof ratear>>["r"]["itens"], rateada?: boolean) {
+  const resp = await responsaveis(db, tipo, itens.map((i) => i.imovelId), rateada);
   const { error } = await db.from("despesa_itens").insert(itens.map((i) => ({
     despesa_id: despesaId, imovel_id: i.imovelId, proprietario_id: i.proprietarioId,
     cotas: i.quantidade, percentual_dono: i.percentualDono, valor: i.valor, taxa_adm: i.taxaAdm,
-    responsavel: resp.get(i.imovelId) ?? "proprietario",
+    responsavel: resp.get(i.imovelId)?.responsavel ?? "proprietario", volta_inquilino: resp.get(i.imovelId)?.volta ?? false,
   })));
   if (error) throw new Error(error.message);
 }
@@ -81,14 +81,15 @@ export async function lancar(db: SupabaseClient, o: {
   const id = randomUUID();
   const { r, regra, divisor, unidades } = await ratear(db, o.destino, o.total, o.cobraTaxa);
   const pdf_path = await guardarPdf(o.pdf ?? null, id);
-  const { error } = await db.from("despesas").insert({
+  const rateada = await marcaRateio(db, o.destino, o.tipo);
+  const { error } = await db.from("despesas").insert({ rateada_inquilinos: rateada,
     id, condominio_id: o.destino.imovelId ? null : o.destino.condominioId, imovel_id: o.destino.imovelId, tipo: o.tipo,
     descricao: o.descricao, competencia: o.competencia ?? null, valor_total: o.total, regra, divisor, valor_fora: r.fora,
     cobra_taxa_adm: o.cobraTaxa, pdf_path, prazo: o.prazo ?? null, unidades, recorrente_id: o.recorrenteId ?? null,
     competencia_mes: o.competenciaMes ?? null, created_by: o.criadoPor ?? null,
   });
   if (error) throw new Error(error.message);
-  try { await gravarItens(db, id, o.tipo, r.itens); } catch (e) { await db.from("despesas").delete().eq("id", id); throw e; }
+  try { await gravarItens(db, id, o.tipo, r.itens, rateada); } catch (e) { await db.from("despesas").delete().eq("id", id); throw e; }
   await gravarTerceiros(db, id, o.destino.imovelId ? null : o.destino.condominioId, r.fora, { regra, divisor, total: o.total });
   const precisam = await enviarDespesa(db, id);
   return { id, precisam };

@@ -5,10 +5,11 @@ import { BRL } from "@/lib/format";
 type Ev = { id: number; quando: string; user_id: string | null; acao: string; ref_tipo: string | null; ref_id: string | null; valor: number | null; detalhe: string | null; proprietarios: { nome: string } | null };
 const ACAO: Record<string, string> = {
   pagamento_confirmado: "Pagamento confirmado", pagamento_recusado: "Comprovante recusado", abono: "Diferença perdoada",
-  cobranca_emitida: "Cobrança emitida", repasse_fechado: "Repasse fechado", repasse_reaberto: "Repasse reaberto", ajuste: "Ajuste lançado",
+  cobranca_emitida: "Cobrança emitida", repasse_fechado: "Repasse fechado", repasse_reaberto: "Repasse reaberto", ajuste: "Ajuste lançado", importacao: "Importação da carteira",
+  questionamento: "Proprietário questionou despesa", questionamento_respondido: "Questionamento respondido",
 };
 const quando = (iso: string) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
-const link = (e: Ev) => e.ref_tipo === "cobranca" ? `/admin/cobrancas/${e.ref_id}` : e.ref_tipo === "pagamento" ? `/admin/cobrancas/pagamento/${e.ref_id}` : e.ref_tipo === "repasse" && e.acao === "repasse_fechado" ? `/admin/repasses/${e.ref_id}` : null;
+const link = (e: Ev) => e.ref_tipo === "cobranca" ? `/admin/cobrancas/${e.ref_id}` : e.ref_tipo === "pagamento" ? `/admin/cobrancas/pagamento/${e.ref_id}` : e.ref_tipo === "repasse" && e.acao === "repasse_fechado" ? `/admin/repasses/${e.ref_id}` : e.ref_tipo === "despesa" && e.ref_id ? `/admin/despesas/${e.ref_id}` : null;
 
 /** Registro de tudo que mexe com dinheiro: quem fez, quando e quanto. Não pode ser alterado nem apagado. */
 export default async function Atividade() {

@@ -1,3 +1,4 @@
+import { MarcaDespesa } from "./MarcaDespesa";
 import { BRL, data } from "@/lib/format";
 import { SITUACAO_LABEL } from "@/lib/types";
 import { responderDespesa } from "./actions";
@@ -18,6 +19,7 @@ export function Historico({ despesas }: { despesas: DespesaPortal[] }) {
               <form action={responderDespesa}><input type="hidden" name="despesa_id" value={d.id} /><button className="btn ghost sm" name="decisao" value="">Alterar</button></form>
             )}
           </span>
+          <MarcaDespesa d={d} voltar="/portal/decidir" />
         </span>
         <span className="v">{BRL(d.total)}</span>
       </div>

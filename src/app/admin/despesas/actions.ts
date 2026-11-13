@@ -11,11 +11,12 @@ import { numero, obrigatorio, texto } from "@/lib/form";
 import { calcularRateio, type Regra, type UnidadeRateio } from "@/lib/rateio";
 import { createServiceClient } from "@/lib/supabase/server";
 import { carregarCarteira } from "./dados";
-import { aplicarDecisoesAutomaticas, responsaveis } from "@/lib/decisoes";
+import { aplicarDecisoesAutomaticas, marcaRateio, responsaveis } from "@/lib/decisoes";
 import { estornarItens } from "@/lib/cobrancas";
 import { enviarDespesa as enviarLancamento, gravarItens, gravarTerceiros, guardarPdf, lancar, ratear } from "@/lib/lancamento";
 
 const voltar = (path: string, params: Record<string, string>): never => redirect(`${path}?${new URLSearchParams(params)}`);
+const checar = (e: { message: string } | null) => { if (e) throw new Error(e.message); };
 const BUCKET = "despesas";
 const MAX_PDF = 10 * 1024 * 1024;
 
@@ -77,9 +78,10 @@ export async function lancarDespesa(form: FormData) {
     }
 
     const tipo = String(form.get("tipo") ?? "variavel");
-    const resp = await responsaveis(supabase, tipo, r.itens.map((i) => i.imovelId));
+    const rateada = await marcaRateio(supabase, { condominioId: condominio_id, imovelId: imovel_id }, tipo, texto(form, "rateio_inquilinos"));
+    const resp = await responsaveis(supabase, tipo, r.itens.map((i) => i.imovelId), rateada);
     const { error: e1 } = await supabase.from("despesas").insert({
-      id, condominio_id, imovel_id, tipo,
+      id, condominio_id, imovel_id, tipo, rateada_inquilinos: rateada,
       requer_aprovacao: form.get("requer_aprovacao") === "on",
       unidades: unidades.map((u) => ({ imovelId: u.imovelId, quantidade: u.quantidade })),
       descricao: obrigatorio(form, "descricao", "Descrição"),
@@ -96,7 +98,7 @@ export async function lancarDespesa(form: FormData) {
     const { error: e2 } = await supabase.from("despesa_itens").insert(r.itens.map((i) => ({
       despesa_id: id, imovel_id: i.imovelId, proprietario_id: i.proprietarioId,
       cotas: i.quantidade, percentual_dono: i.percentualDono, valor: i.valor, taxa_adm: i.taxaAdm,
-      responsavel: resp.get(i.imovelId) ?? "proprietario",
+      responsavel: resp.get(i.imovelId)?.responsavel ?? "proprietario", volta_inquilino: resp.get(i.imovelId)?.volta ?? false,
     })));
     if (e2) {
       await supabase.from("despesas").delete().eq("id", id);
@@ -173,7 +175,7 @@ export async function completarDespesa(form: FormData) {
     await supabase.from("despesa_itens").delete().eq("despesa_id", id);
     const { error } = await supabase.from("despesas").update({ valor_total: valor, valor_fora: r.fora, regra, divisor, unidades, pdf_path, prazo: texto(form, "prazo") }).eq("id", id);
     if (error) throw new Error(error.message);
-    await gravarItens(supabase, id, d.tipo, r.itens);
+    await gravarItens(supabase, id, d.tipo, r.itens, d.rateada_inquilinos);
     await gravarTerceiros(supabase, id, d.condominio_id, r.fora, { regra, divisor, total: valor });
     const precisam = await enviarLancamento(supabase, id);
     if (precisam.length) after(() => avisos.despesaEnviada(id, precisam));
@@ -224,4 +226,37 @@ export async function terceiroRecebido(form: FormData) {
   if (error) voltar(back, { erro: error.message });
   revalidatePath("/admin", "layout");
   voltar(back, { ok: recebido ? "Recebimento do terceiro registrado." : "Recebimento desfeito." });
+}
+
+/** Troca a marca "rateada com os inquilinos" / "do proprietário" e refaz o que volta pelo inquilino
+ *  (só nas partes que ainda não foram lançadas no boleto). */
+export async function alterarRateio(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const id = String(form.get("id"));
+  const back = `/admin/despesas/${id}`;
+  const rateada = form.get("rateada") === "1";
+  try {
+    const { data: d } = await supabase.from("despesas").select("tipo").eq("id", id).single();
+    if (!d) throw new Error("Despesa não encontrada.");
+    checar((await supabase.from("despesas").update({ rateada_inquilinos: rateada }).eq("id", id)).error);
+    const { data: its } = await supabase.from("despesa_itens").select("id, imovel_id").eq("despesa_id", id).is("inquilino_lancado_em", null);
+    const resp = await responsaveis(supabase, d.tipo, (its ?? []).map((i) => i.imovel_id as string), rateada);
+    for (const i of its ?? []) checar((await supabase.from("despesa_itens").update({ volta_inquilino: resp.get(i.imovel_id as string)?.volta ?? false }).eq("id", i.id)).error);
+  } catch (e) { voltar(back, { erro: e instanceof Error ? e.message : "Não foi possível alterar." }); }
+  revalidatePath("/admin", "layout");
+  revalidatePath("/portal", "layout");
+  voltar(back, { ok: rateada ? "Marcada como rateada com os inquilinos." : "Marcada como despesa do proprietário." });
+}
+
+/** Resposta da imobiliária a um questionamento do proprietário. */
+export async function responderQuestionamento(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const despesa = String(form.get("despesa_id"));
+  const resposta = texto(form, "resposta");
+  if (!resposta) voltar(`/admin/despesas/${despesa}`, { erro: "Escreva a resposta." });
+  const { error } = await supabase.from("despesa_questionamentos").update({ resposta, respondido_em: new Date().toISOString() }).eq("id", String(form.get("id")));
+  if (error) voltar(`/admin/despesas/${despesa}`, { erro: error.message });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/portal", "layout");
+  voltar(`/admin/despesas/${despesa}`, { ok: "Resposta enviada ao proprietário." });
 }

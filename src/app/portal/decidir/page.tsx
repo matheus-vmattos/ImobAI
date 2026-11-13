@@ -35,8 +35,8 @@ export default async function Decidir({ searchParams }: { searchParams: Promise<
           <Renovacoes itens={renovacoes} voltar="/portal/decidir" />
         </section>
       )}
-      <section className="sec">
-        <div className="sec-h"><h2>Já respondidas</h2></div>
+      <section className="sec" id="historico">
+        <div className="sec-h"><h2>Contas já lançadas</h2></div>
         <Historico despesas={historico.slice(0, 30)} />
       </section>
     </>

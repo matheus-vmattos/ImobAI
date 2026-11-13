@@ -1,10 +1,32 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { decisaoAutomatica, responsavelPor, TIPOS_FIXOS } from "@/lib/contaCorrente";
+import { rateadaPadrao, voltaPeloInquilino, decisaoAutomatica, responsavelPor, TIPOS_FIXOS } from "@/lib/contaCorrente";
 
 /** Responsável de cada parte da conta, pelo tipo e pela situação de cada imóvel. */
-export async function responsaveis(supabase: SupabaseClient, tipo: string, imovelIds: string[]) {
-  const { data } = await supabase.from("imoveis").select("id, status, condominio_pago_por").in("id", imovelIds);
-  return new Map((data ?? []).map((i) => [i.id as string, responsavelPor(tipo, i.status, i.condominio_pago_por)]));
+type ImResp = { id: string; status: string; condominio_pago_por: "imobiliaria" | "proprietario"; condominios: { inquilino_reembolsa: boolean } | null };
+
+/** Quem paga cada unidade e se a parte dela volta pelo inquilino. `rateada`: a marca da despesa
+ *  (undefined = padrão: tudo menos obras e extras, nos prédios em que o inquilino reembolsa). */
+export async function responsaveis(supabase: SupabaseClient, tipo: string, imovelIds: string[], rateada?: boolean) {
+  const { data } = await supabase.from("imoveis").select("id, status, condominio_pago_por, condominios(inquilino_reembolsa)").in("id", imovelIds);
+  return new Map(((data ?? []) as unknown as ImResp[]).map((i) => {
+    const reembolsa = !!i.condominios?.inquilino_reembolsa;
+    const r = rateada ?? rateadaPadrao(tipo, reembolsa);
+    return [i.id, { responsavel: responsavelPor(tipo, i.status, i.condominio_pago_por, reembolsa), volta: reembolsa && voltaPeloInquilino(r, i.status) }];
+  }));
+}
+
+/** Marca da despesa (visível ao proprietário): escolha do formulário ("sim"/"nao") ou o padrão do prédio. */
+export async function marcaRateio(supabase: SupabaseClient, destino: { condominioId: string | null; imovelId: string | null }, tipo: string, escolha?: string | null) {
+  let reembolsa = false;
+  if (destino.condominioId) {
+    const { data } = await supabase.from("condominios").select("inquilino_reembolsa").eq("id", destino.condominioId).maybeSingle();
+    reembolsa = !!data?.inquilino_reembolsa;
+  } else if (destino.imovelId) {
+    const { data } = await supabase.from("imoveis").select("condominios(inquilino_reembolsa)").eq("id", destino.imovelId).maybeSingle();
+    reembolsa = !!(data as unknown as { condominios: { inquilino_reembolsa: boolean } | null } | null)?.condominios?.inquilino_reembolsa;
+  }
+  if (!reembolsa) return false;
+  return escolha === "sim" ? true : escolha === "nao" ? false : rateadaPadrao(tipo, true);
 }
 
 type ItemRow = {

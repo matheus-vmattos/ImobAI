@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { BRL, hojeSP, somarData } from "@/lib/format";
 import { calcularRateio, type Regra } from "@/lib/rateio";
+import { TIPOS_DO_PROPRIETARIO } from "@/lib/contaCorrente";
 import { TIPO_LABEL, type TipoDespesa } from "@/lib/types";
 import { lancarDespesa } from "../actions";
 import type { CondominioForm, UnidadeForm } from "../dados";
@@ -20,6 +21,8 @@ export function LancarDespesa({ condominios, imoveis }: { condominios: Condomini
   const [imovelId, setImovelId] = useState(imoveis[0]?.id ?? "");
   const [totalTxt, setTotalTxt] = useState("");
   const [cobraTaxa, setCobraTaxa] = useState(false);
+  const [tipo, setTipo] = useState<TipoDespesa>("variavel");
+  const doProprietario = TIPOS_DO_PROPRIETARIO.includes(tipo);
   const [regra, setRegra] = useState<Exclude<Regra, "integral">>("cotas");
   const cond = condominios.find((c) => c.id === condId);
   const [divisor, setDivisor] = useState(String(cond?.cotasPadrao ?? cond?.unidades.reduce((a, u) => a + u.cotas, 0) ?? ""));
@@ -79,7 +82,7 @@ export function LancarDespesa({ condominios, imoveis }: { condominios: Condomini
         )}
         <div className="row2">
           <div className="field"><label className="label" htmlFor="tipo">Tipo</label>
-            <select id="tipo" name="tipo" defaultValue="variavel">
+            <select id="tipo" name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoDespesa)}>
               {(Object.keys(TIPO_LABEL) as TipoDespesa[]).map((t) => <option key={t} value={t}>{TIPO_LABEL[t]}</option>)}
             </select></div>
           <div className="field"><label className="label" htmlFor="competencia">Competência</label>
@@ -93,6 +96,13 @@ export function LancarDespesa({ condominios, imoveis }: { condominios: Condomini
           <div className="field"><label className="label" htmlFor="prazo">Prazo para resposta</label>
             <input id="prazo" name="prazo" type="date" defaultValue={em7dias()} /></div>
         </div>
+        <div className="field"><label className="label" htmlFor="rateio_inquilinos">O proprietário vê esta despesa como</label>
+          <select id="rateio_inquilinos" name="rateio_inquilinos" defaultValue="">
+            <option value="">Automático: {doProprietario ? "despesa do proprietário (obra/extra)" : "será rateada com os inquilinos"}</option>
+            <option value="sim">Despesa será rateada com os inquilinos</option>
+            <option value="nao">Despesa do proprietário</option>
+          </select>
+          <small>Rateada: o proprietário paga e a parte de cada unidade alugada volta pelo inquilino no repasse. Só vale nos prédios em que o inquilino reembolsa.</small></div>
         <label className="tog"><input type="checkbox" name="cobra_taxa" checked={cobraTaxa} onChange={(e) => setCobraTaxa(e.target.checked)} />
           <span>Cobrar taxa de administração sobre esta despesa<small>Usa a taxa de cada imóvel (padrão 10%), somada à parte do proprietário.</small></span></label>
         <label className="tog"><input type="checkbox" name="requer_aprovacao" />
