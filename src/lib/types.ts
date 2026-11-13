@@ -55,6 +55,7 @@ export type Imovel = {
   iptu_inscricao: string | null;
   energia_cliente: string | null;
   agua_cliente: string | null;
+  codigo_externo: string | null;
 };
 
 export type Contrato = {
@@ -70,6 +71,7 @@ export type Contrato = {
   aviso_saida_em: string | null;
   entrega_chaves_prevista: string | null;
   observacoes: string | null;
+  datas_a_conferir: boolean;
 };
 
 export type ImovelProprietario = { imovel_id: string; proprietario_id: string; percentual: number };

@@ -40,6 +40,7 @@ export default async function EditarImovel({ params, searchParams }: {
           {imovel.condominio_id && <><Link href={`/admin/condominios/${imovel.condominio_id}`}>{imovel.condominios?.nome}</Link><span>/</span></>}
           <span>{imovel.identificacao}</span></div>
         <h1>{imovel.identificacao} <StatusPill status={imovel.status} /></h1>
+        {imovel.codigo_externo && <p className="small muted" style={{ margin: 0 }}>Código no sistema anterior: {imovel.codigo_externo}</p>}
       </section>
       <Aviso ok={ok} erro={erro} />
       <div className="cols">
@@ -53,7 +54,8 @@ export default async function EditarImovel({ params, searchParams }: {
         <div style={{ display: "grid", gap: 16 }}>
           <form action={salvarContrato} className="panel" key={ativo?.id ?? "novo"}>
             <div className="sec-h"><h2>{ativo ? "Contrato ativo" : "Novo contrato"}</h2><span className="rule" /></div>
-            {ativo && <p className="small muted" style={{ margin: 0 }}>Termina em {data(ativo.fim)} · faltam {diasAte(ativo.fim)} dias</p>}
+            {ativo && <p className="small muted" style={{ margin: 0 }}>{diasAte(ativo.fim) < 0 ? `Terminou em ${data(ativo.fim)}: renove ou encerre` : `Termina em ${data(ativo.fim)} · faltam ${diasAte(ativo.fim)} dias`}</p>}
+            {ativo?.datas_a_conferir && <div className="alert" role="status">Datas a conferir: início e dia do vencimento foram estimados na importação. Corrija pelo contrato assinado e salve.</div>}
             <input type="hidden" name="imovel_id" value={imovel.id} />
             {ativo && <input type="hidden" name="id" value={ativo.id} />}
             <div className="row2">

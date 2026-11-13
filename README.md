@@ -25,7 +25,7 @@ Banco de imóveis de proprietários com portal web. A imobiliária cadastra prop
    - **Dinheiro:** confirmar pagamento, emitir cobrança e fechar ou reabrir repasse são funções do banco (uma transação cada). A resposta do proprietário trava depois de cobrada. Toda operação fica em **Admin → Atividade** (quem, quando, quanto), sem edição.
    - **Datas** no horário de São Paulo; dia do repasse configurável.
    - **Portal:** aluguel do mês pago, a receber ou atrasado; imóvel vago há quantos dias; histórico de cada unidade; sócio vê se a parte dele foi paga e por quem; telas de espera e botões que não aceitam clique duplo.
-   - **Importar planilha** (**Admin → Importar planilha**): modelo em Excel com 4 abas, conferência com erros por aba e linha, e importação "tudo ou nada". O que já existe não é duplicado.
+   - **Importar carteira** (**Admin → Importar carteira**): aceita os relatórios em PDF da Superlógica (imóveis + contratos em andamento) ou o modelo em Excel com 4 abas. Conferência com erros e avisos, importação "tudo ou nada". Imóveis de "Rateio" ficam de fora, unidades repetidas viram aviso, e reimportar **atualiza** (aluguel, inquilino, término, situação) sem duplicar, pelo código do sistema anterior. Contratos sem início/dia de vencimento no PDF entram com datas estimadas e marcados **datas a conferir** até alguém salvar o contrato.
 
 O design segue `prototipo/v2/` (maquetes em HTML; gere os `.html` a partir dos `.src.html`). O protótipo antigo está em `prototipo/index.html`.
 
@@ -33,7 +33,7 @@ O design segue `prototipo/v2/` (maquetes em HTML; gere os `.html` a partir dos `
 
 ### 1. Criar o projeto no Supabase
 1. Crie um projeto em https://supabase.com (plano gratuito serve).
-2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…` a `0009_…`). O `0002` cria o bucket privado `despesas` para os PDFs e o `0005`, o bucket `comprovantes`.
+2. No **SQL Editor**, rode os arquivos de `supabase/migrations/` em ordem (`0001_…` a `0010_…`). O `0002` cria o bucket privado `despesas` para os PDFs e o `0005`, o bucket `comprovantes`.
 3. (Opcional) Rode `supabase/seed.sql` para ter dados de exemplo.
 4. Em **Authentication → URL Configuration**, coloque a URL do app em *Site URL* e adicione `https://SEU-APP/auth/confirm` em *Redirect URLs* (e `http://localhost:3000/auth/confirm` para testar local).
 5. (Opcional) Os e-mails padrão de convite e de redefinição de senha já funcionam: o app abre a sessão em `/auth/sessao`. Para personalizá-los, configure um SMTP próprio (exigido no plano grátis) e, em **Authentication → Email Templates**, use o link:

@@ -268,6 +268,7 @@ export async function salvarContrato(form: FormData) {
       aviso_saida_em: texto(form, "aviso_saida_em"),
       entrega_chaves_prevista: texto(form, "entrega_chaves_prevista"),
       observacoes: texto(form, "observacoes"),
+      datas_a_conferir: false, // salvou: as datas foram conferidas
     };
     if (dados.fim < dados.inicio) throw new Error("O fim do contrato é anterior ao início.");
     if (id) {

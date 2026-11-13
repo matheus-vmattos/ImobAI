@@ -8,18 +8,18 @@ import { STATUS_LABEL, STATUS_ORDEM, type Imovel, type StatusImovel } from "@/li
 type Linha = Imovel & {
   condominios: { nome: string } | null;
   imovel_proprietarios: { proprietarios: { nome: string } }[];
-  contratos: { inquilino: string; aluguel: number; fim: string; ativo: boolean }[];
+  contratos: { inquilino: string; aluguel: number; fim: string; ativo: boolean; datas_a_conferir: boolean }[];
 };
 
 export default async function Imoveis({ searchParams }: {
-  searchParams: Promise<{ q?: string; status?: string; condominio?: string; ok?: string; erro?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; condominio?: string; conferir?: string; ok?: string; erro?: string }>;
 }) {
   const sp = await searchParams;
-  const { q = "", status = "", condominio = "", ok, erro } = sp;
+  const { q = "", status = "", condominio = "", conferir = "", ok, erro } = sp;
   const { supabase } = await exigirAdmin();
   const [{ data: rows }, { data: condominios }] = await Promise.all([
     supabase.from("imoveis")
-      .select("*, condominios(nome), imovel_proprietarios(proprietarios(nome)), contratos(inquilino, aluguel, fim, ativo)")
+      .select("*, condominios(nome), imovel_proprietarios(proprietarios(nome)), contratos(inquilino, aluguel, fim, ativo, datas_a_conferir)")
       .order("identificacao"),
     supabase.from("condominios").select("id, nome").order("nome"),
   ]);
@@ -28,12 +28,12 @@ export default async function Imoveis({ searchParams }: {
   const termo = q.toLowerCase();
   const porCondo = todos.filter((i) => !condominio || (condominio === "avulso" ? !i.condominio_id : i.condominio_id === condominio));
   const lista = porCondo.filter((i) =>
-    (!status || i.status === status) &&
-    (!termo || [i.identificacao, i.endereco, i.condominios?.nome, ativo(i)?.inquilino, ...i.imovel_proprietarios.map((v) => v.proprietarios.nome)]
+    (!status || i.status === status) && (!conferir || !!ativo(i)?.datas_a_conferir) &&
+    (!termo || [i.identificacao, i.codigo_externo, i.endereco, i.condominios?.nome, ativo(i)?.inquilino, ...i.imovel_proprietarios.map((v) => v.proprietarios.nome)]
       .filter(Boolean).join(" ").toLowerCase().includes(termo)));
 
   const href = (p: Record<string, string>) => {
-    const s = new URLSearchParams({ q, status, condominio, ...p });
+    const s = new URLSearchParams({ q, status, condominio, conferir, ...p });
     [...s.keys()].forEach((k) => !s.get(k) && s.delete(k));
     return `/admin/imoveis${s.size ? "?" + s : ""}`;
   };
@@ -58,10 +58,13 @@ export default async function Imoveis({ searchParams }: {
           <Link href="/admin/imoveis/novo" className="btn primary">Novo imóvel</Link>
         </form>
         <div className="filters">
-          <Link href={href({ status: "" })} aria-pressed={!status}>Todos<span className="n">{porCondo.length}</span></Link>
+          <Link href={href({ status: "", conferir: "" })} aria-pressed={!status && !conferir}>Todos<span className="n">{porCondo.length}</span></Link>
           {STATUS_ORDEM.map((s: StatusImovel) => (
             <Link key={s} href={href({ status: s })} aria-pressed={status === s}>{STATUS_LABEL[s]}<span className="n">{porCondo.filter((i) => i.status === s).length}</span></Link>
           ))}
+          {porCondo.some((i) => ativo(i)?.datas_a_conferir) && (
+            <Link href={href({ status: "", conferir: conferir ? "" : "1" })} aria-pressed={!!conferir}>Datas a conferir<span className="n">{porCondo.filter((i) => ativo(i)?.datas_a_conferir).length}</span></Link>
+          )}
         </div>
         {lista.length ? (
           <div className="box tbl-wrap"><table>
@@ -76,7 +79,7 @@ export default async function Imoveis({ searchParams }: {
                   <td className="muted">{i.imovel_proprietarios.map((v) => v.proprietarios.nome).join(", ") || "—"}</td>
                   <td><StatusPill status={i.status} /></td>
                   <td className="r num">{BRL0(c?.aluguel ?? i.aluguel_pedido)}</td>
-                  <td className="num" style={{ color: dias != null && dias <= RENOVACAO_DIAS ? "var(--warn)" : undefined }}>{c ? data(c.fim) : "—"}</td>
+                  <td className="num" style={{ color: dias != null && dias <= RENOVACAO_DIAS ? "var(--warn)" : undefined }}>{c ? data(c.fim) : "—"}{c?.datas_a_conferir && <><br /><span className="small" style={{ color: "var(--warn)" }}>datas a conferir</span></>}</td>
                   <td className="muted">{c?.inquilino ?? "—"}</td>
                   <td className="go">›</td>
                 </tr>

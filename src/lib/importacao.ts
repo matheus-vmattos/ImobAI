@@ -7,15 +7,18 @@ export type Abas = Record<string, Celula[][]>;
 export const MODELO = {
   "Proprietários": ["Nome", "CPF ou CNPJ", "E-mail", "Telefone", "Chave Pix", "Dados bancários", "Como paga (cobrança ou repasse)", "Quem paga as contas (nome de outro proprietário)"],
   "Condomínios": ["Nome", "Endereço", "Cidade", "Total de cotas", "Inscrição IPTU", "Nº cliente energia", "Nº cliente água"],
-  "Imóveis": ["Condomínio (vazio = avulso)", "Identificação", "Endereço (obrigatório se avulso)", "Tipo", "Situação (alugado, vago, saindo ou indisponível)", "Cotas", "Taxa de adm. (%)", "Aluguel pedido", "Seguro incêndio mensal", "Boleto do condomínio pago por (imobiliária ou proprietário)", "Proprietário 1", "% 1", "Proprietário 2", "% 2", "Proprietário 3", "% 3"],
-  "Contratos": ["Condomínio (vazio = avulso)", "Imóvel (identificação)", "Inquilino", "Contato do inquilino", "Aluguel", "Início", "Fim", "Dia do vencimento"],
+  "Imóveis": ["Condomínio (vazio = avulso)", "Identificação", "Endereço (obrigatório se avulso)", "Tipo", "Situação (alugado, vago, saindo ou indisponível)", "Cotas", "Taxa de adm. (%)", "Aluguel pedido", "Seguro incêndio mensal", "Boleto do condomínio pago por (imobiliária ou proprietário)", "Proprietário 1", "% 1", "Proprietário 2", "% 2", "Proprietário 3", "% 3", "Código (sistema anterior)", "Inscrição IPTU", "Nº cliente energia", "Nº cliente água", "Observações"],
+  "Contratos": ["Condomínio (vazio = avulso)", "Imóvel (identificação)", "Inquilino", "Contato do inquilino", "Aluguel", "Início", "Fim", "Dia do vencimento", "Datas a conferir (sim/não)"],
 } as const;
 export type NomeAba = keyof typeof MODELO;
 
 export type Proprietario = { nome: string; cpf_cnpj: string | null; email: string | null; telefone: string | null; pix: string | null; dados_bancarios: string | null; forma_padrao: "cobranca" | "repasse"; pagador: string | null };
 export type Condominio = { nome: string; endereco: string | null; cidade: string | null; cotas_padrao: number | null; iptu_inscricao: string | null; energia_cliente: string | null; agua_cliente: string | null };
-export type Imovel = { condominio: string | null; identificacao: string; endereco: string | null; tipo: string | null; status: "locado" | "vazio" | "devolucao" | "indisponivel"; cotas: number; taxa_adm_pct: number; aluguel_pedido: number | null; seguro: number | null; condominio_pago_por: "imobiliaria" | "proprietario"; donos: { nome: string; percentual: number }[] };
-export type Contrato = { condominio: string | null; imovel: string; inquilino: string; contato: string | null; aluguel: number; inicio: string; fim: string; dia_vencimento: number | null };
+export type Imovel = { condominio: string | null; identificacao: string; endereco: string | null; tipo: string | null; status: "locado" | "vazio" | "devolucao" | "indisponivel"; cotas: number; taxa_adm_pct: number; aluguel_pedido: number | null; seguro: number | null; condominio_pago_por: "imobiliaria" | "proprietario"; donos: { nome: string; percentual: number }[];
+  codigo: string | null; iptu_inscricao: string | null; energia_cliente: string | null; agua_cliente: string | null; observacoes: string | null;
+  /** já cadastrado: atualiza os dados (não mexe nos proprietários) */ existe: boolean;
+  /** já cadastrado e veio como vago sem contrato: encerra o contrato ativo */ vagou: boolean };
+export type Contrato = { condominio: string | null; imovel: string; inquilino: string; contato: string | null; aluguel: number; inicio: string; fim: string; dia_vencimento: number | null; a_conferir: boolean };
 export type Erro = { aba: NomeAba; linha: number; msg: string };
 export type Resultado = { proprietarios: Proprietario[]; condominios: Condominio[]; imoveis: Imovel[]; contratos: Contrato[]; erros: Erro[]; avisos: Erro[] };
 
@@ -112,7 +115,7 @@ export function validar(abas: Abas, existente: Existente = { proprietarios: [], 
     if (!condominio && !endereco) { erro("Imóveis", n, `"${identificacao}": imóvel avulso precisa de endereço.`); continue; }
     const k = chaveImovel(condominio, identificacao);
     if (ims.has(k)) { erro("Imóveis", n, `"${identificacao}" está repetido${condominio ? ` em ${condominio}` : ""}.`); continue; }
-    if (jaIm.has(k)) { aviso("Imóveis", n, `"${identificacao}" já está cadastrado e não será alterado.`); continue; }
+    const existe = jaIm.has(k);
     const sit = chave(txt(cols[4]));
     if (sit && !SITUACAO[sit]) erro("Imóveis", n, `Situação "${txt(cols[4])}": use alugado, vago, saindo ou indisponível.`);
     const donos: Imovel["donos"] = [];
@@ -122,17 +125,20 @@ export function validar(abas: Abas, existente: Existente = { proprietarios: [], 
       if (!existeProp(nome)) { erro("Imóveis", n, `Proprietário "${nome}" não está na aba Proprietários.`); continue; }
       donos.push({ nome, percentual: num("Imóveis", n, cols[i + 1], "Percentual") ?? 0 });
     }
-    if (!donos.length) { erro("Imóveis", n, `"${identificacao}": falta o proprietário.`); continue; }
+    if (!donos.length && !existe) { erro("Imóveis", n, `"${identificacao}": falta o proprietário.`); continue; }
     if (donos.length === 1 && !donos[0].percentual) donos[0].percentual = 100;
     const soma = donos.reduce((a, d) => a + d.percentual, 0);
-    if (Math.abs(soma - 100) > 0.01) erro("Imóveis", n, `"${identificacao}": os percentuais somam ${soma}%, precisam somar 100%.`);
+    if (donos.length && Math.abs(soma - 100) > 0.01) erro("Imóveis", n, `"${identificacao}": os percentuais somam ${soma}%, precisam somar 100%.`);
     if (new Set(donos.map((d) => chave(d.nome))).size !== donos.length) erro("Imóveis", n, `"${identificacao}": proprietário repetido.`);
     ims.set(k, {
       condominio, identificacao, endereco, tipo: txt(cols[3]), status: SITUACAO[sit] ?? "vazio",
       cotas: num("Imóveis", n, cols[5], "Cotas") ?? 1, taxa_adm_pct: num("Imóveis", n, cols[6], "Taxa de adm.") ?? 10,
       aluguel_pedido: num("Imóveis", n, cols[7], "Aluguel pedido"), seguro: num("Imóveis", n, cols[8], "Seguro incêndio"),
       condominio_pago_por: chave(txt(cols[9])).startsWith("propriet") ? "proprietario" : "imobiliaria", donos,
+      codigo: txt(cols[16]), iptu_inscricao: txt(cols[17]), energia_cliente: txt(cols[18]), agua_cliente: txt(cols[19]), observacoes: txt(cols[20]),
+      existe, vagou: existe && !!SITUACAO[sit] && SITUACAO[sit] === "vazio",
     });
+    if (existe) aviso("Imóveis", n, `"${identificacao}" já está cadastrado: atualiza aluguel pedido, taxa e códigos (os proprietários não mudam).`);
   }
   r.imoveis = [...ims.values()];
 
@@ -142,8 +148,7 @@ export function validar(abas: Abas, existente: Existente = { proprietarios: [], 
     const condominio = txt(cols[0]), imovel = txt(cols[1]), inquilino = txt(cols[2]);
     if (!imovel) { erro("Contratos", n, "Falta o imóvel."); continue; }
     const k = chaveImovel(condominio, imovel);
-    if (!ims.has(k) && jaIm.has(k)) { aviso("Contratos", n, `"${imovel}" já estava cadastrado: o contrato dele não é alterado pela planilha.`); continue; }
-    if (!ims.has(k)) { erro("Contratos", n, `Imóvel "${imovel}"${condominio ? ` em ${condominio}` : ""} não está na aba Imóveis.`); continue; }
+    if (!ims.has(k) && !jaIm.has(k)) { erro("Contratos", n, `Imóvel "${imovel}"${condominio ? ` em ${condominio}` : ""} não está na aba Imóveis.`); continue; }
     if (comContrato.has(k)) { erro("Contratos", n, `"${imovel}" tem mais de um contrato na planilha.`); continue; }
     if (!inquilino) { erro("Contratos", n, `"${imovel}": falta o inquilino.`); continue; }
     const aluguel = num("Contratos", n, cols[4], "Aluguel"), inicio = dataISO(cols[5]), fim = dataISO(cols[6]);
@@ -153,11 +158,12 @@ export function validar(abas: Abas, existente: Existente = { proprietarios: [], 
     const dia = num("Contratos", n, cols[7], "Dia do vencimento");
     if (dia != null && (dia < 1 || dia > 31)) { erro("Contratos", n, `"${imovel}": dia do vencimento deve ser de 1 a 31.`); continue; }
     comContrato.add(k);
-    const im = ims.get(k)!;
-    if (im.status === "vazio" || im.status === "indisponivel") { aviso("Contratos", n, `"${imovel}" estava como ${im.status === "vazio" ? "vago" : "indisponível"} mas tem contrato: entra como alugado.`); im.status = "locado"; }
-    r.contratos.push({ condominio, imovel, inquilino, contato: txt(cols[3]), aluguel, inicio, fim, dia_vencimento: dia });
+    const im = ims.get(k);
+    if (im) im.vagou = false;
+    if (im && (im.status === "vazio" || im.status === "indisponivel")) { aviso("Contratos", n, `"${imovel}" estava como ${im.status === "vazio" ? "vago" : "indisponível"} mas tem contrato: entra como alugado.`); im.status = "locado"; }
+    r.contratos.push({ condominio, imovel, inquilino, contato: txt(cols[3]), aluguel, inicio, fim, dia_vencimento: dia, a_conferir: chave(txt(cols[8])) === "sim" });
   }
-  for (const [k, im] of ims) if ((im.status === "locado" || im.status === "devolucao") && !comContrato.has(k)) {
+  for (const [k, im] of ims) if (!im.existe && (im.status === "locado" || im.status === "devolucao") && !comContrato.has(k)) {
     aviso("Imóveis", 0, `"${im.identificacao}" está como ${im.status === "locado" ? "alugado" : "saindo"} mas não tem contrato na planilha: entra como vago.`);
     im.status = "vazio";
   }

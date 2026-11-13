@@ -62,7 +62,7 @@ export default async function AdminHome() {
 
       {(imoveis ?? []).length === 0 && (
         <div className="empty"><b>Comece cadastrando a carteira.</b>Importe proprietários, condomínios, imóveis e contratos de uma planilha, ou cadastre um a um.
-          <span className="actions"><Link className="btn primary" href="/admin/importar">Importar planilha</Link><Link className="btn" href="/admin/proprietarios/novo">Cadastrar proprietário</Link></span></div>
+          <span className="actions"><Link className="btn primary" href="/admin/importar">Importar carteira</Link><Link className="btn" href="/admin/proprietarios/novo">Cadastrar proprietário</Link></span></div>
       )}
 
       <section className="sec">

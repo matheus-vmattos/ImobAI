@@ -35,7 +35,7 @@ test("planilha completa: proprietários, condomínio, imóveis e contrato", () =
   assert.deepEqual(r.imoveis[0].donos, [{ nome: "Eduardo Castro", percentual: 50 }, { nome: "Rafael Castro", percentual: 50 }]);
   assert.equal(r.imoveis[1].donos[0].percentual, 100);
   assert.equal(r.imoveis[2].condominio_pago_por, "proprietario");
-  assert.deepEqual(r.contratos[0], { condominio: "Ed. Valoriza I", imovel: "apto 101", inquilino: "Maria", contato: null, aluguel: 1600, inicio: "2025-06-01", fim: "2027-05-31", dia_vencimento: 5 });
+  assert.deepEqual(r.contratos[0], { condominio: "Ed. Valoriza I", imovel: "apto 101", inquilino: "Maria", contato: null, aluguel: 1600, inicio: "2025-06-01", fim: "2027-05-31", dia_vencimento: 5, a_conferir: false });
 });
 
 test("erros apontam a aba e a linha", () => {
@@ -61,4 +61,22 @@ test("o que já existe não é duplicado; alugado sem contrato entra como vago",
   assert.deepEqual(r.proprietarios.map((p) => p.nome), ["Novo Dono"]);
   assert.equal(r.imoveis[0].status, "vazio");
   assert.equal(r.avisos.length, 2);
+});
+
+test("imóvel já cadastrado é atualizado e pode receber contrato; vago encerra o contrato", () => {
+  const r = validar(abas({
+    "Imóveis": [
+      ["Ed. A", "Apto 1", "", "", "vago", "", 8, "1.900,00", "", "", "", "", "", "", "", "", "I 10", "123-4"],
+      ["Ed. A", "Apto 2", "", "", "alugado"],
+    ],
+    "Contratos": [["Ed. A", "Apto 2", "João", "", "2000", "01/01/2026", "30/06/2028", "", "sim"]],
+  }), { proprietarios: [], condominios: ["Ed. A"], imoveis: ["ed. a|apto 1", "ed. a|apto 2"] });
+  assert.deepEqual(r.erros, []);
+  assert.equal(r.imoveis.length, 2);
+  assert.ok(r.imoveis.every((i) => i.existe));
+  assert.equal(r.imoveis[0].vagou, true);
+  assert.equal(r.imoveis[0].codigo, "I 10");
+  assert.equal(r.imoveis[0].iptu_inscricao, "123-4");
+  assert.equal(r.imoveis[1].vagou, false);
+  assert.equal(r.contratos[0].a_conferir, true);
 });
