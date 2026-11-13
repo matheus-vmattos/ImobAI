@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { Aviso } from "@/components/Aviso";
 import { StatusPill } from "@/components/StatusPill";
 import { exigirAdmin } from "@/lib/auth";
-import { BRL0, data, diasAte } from "@/lib/format";
-import type { Contrato, Imovel } from "@/lib/types";
-import { encerrarContrato, excluirImovel, salvarContrato } from "../../actions";
+import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS, somarData } from "@/lib/format";
+import { RENOVACAO_LABEL, type Contrato, type Imovel, type Renovacao } from "@/lib/types";
+import { encerrarContrato, excluirImovel, registrarNaoRenovacao, registrarRenovacao, salvarContrato } from "../../actions";
 import { ImovelForm } from "../ImovelForm";
 
 export default async function EditarImovel({ params, searchParams }: {
@@ -24,6 +24,14 @@ export default async function EditarImovel({ params, searchParams }: {
   const lista = (contratos ?? []) as Contrato[];
   const ativo = lista.find((c) => c.ativo);
   const antigos = lista.filter((c) => !c.ativo);
+  const { data: rens } = ativo
+    ? await supabase.from("renovacoes").select("*, proprietarios(nome)").eq("contrato_id", ativo.id)
+    : { data: null };
+  const respostas = (rens ?? []) as (Renovacao & { proprietarios: { nome: string } })[];
+  const nomesDonos = new Map((proprietarios ?? []).map((p) => [p.id, p.nome]));
+  const semResposta = (donos ?? []).filter((d) => !respostas.some((r) => r.proprietario_id === d.proprietario_id));
+  const proposto = respostas.find((r) => r.decisao === "novo_valor")?.valor_proposto;
+  const mostrarRenovacao = ativo && imovel.status === "locado" && (respostas.length > 0 || diasAte(ativo.fim) <= RENOVACAO_DIAS);
 
   return (
     <>
@@ -32,6 +40,7 @@ export default async function EditarImovel({ params, searchParams }: {
           {imovel.condominio_id && <><Link href={`/admin/condominios/${imovel.condominio_id}`}>{imovel.condominios?.nome}</Link><span>/</span></>}
           <span>{imovel.identificacao}</span></div>
         <h1>{imovel.identificacao} <StatusPill status={imovel.status} /></h1>
+        {imovel.codigo_externo && <p className="small muted" style={{ margin: 0 }}>Código no sistema anterior: {imovel.codigo_externo}</p>}
       </section>
       <Aviso ok={ok} erro={erro} />
       <div className="cols">
@@ -45,7 +54,8 @@ export default async function EditarImovel({ params, searchParams }: {
         <div style={{ display: "grid", gap: 16 }}>
           <form action={salvarContrato} className="panel" key={ativo?.id ?? "novo"}>
             <div className="sec-h"><h2>{ativo ? "Contrato ativo" : "Novo contrato"}</h2><span className="rule" /></div>
-            {ativo && <p className="small muted" style={{ margin: 0 }}>Termina em {data(ativo.fim)} · faltam {diasAte(ativo.fim)} dias</p>}
+            {ativo && <p className="small muted" style={{ margin: 0 }}>{diasAte(ativo.fim) < 0 ? `Terminou em ${data(ativo.fim)}: renove ou encerre` : `Termina em ${data(ativo.fim)} · faltam ${diasAte(ativo.fim)} dias`}</p>}
+            {ativo?.datas_a_conferir && <div className="alert" role="status">Datas a conferir: início e dia do vencimento foram estimados na importação. Corrija pelo contrato assinado e salve.</div>}
             <input type="hidden" name="imovel_id" value={imovel.id} />
             {ativo && <input type="hidden" name="id" value={ativo.id} />}
             <div className="row2">
@@ -71,6 +81,49 @@ export default async function EditarImovel({ params, searchParams }: {
             <div className="field"><label className="label" htmlFor="c_obs">Observações</label><textarea id="c_obs" name="observacoes" defaultValue={ativo?.observacoes ?? ""} /></div>
             <div className="actions"><button className="btn primary">{ativo ? "Salvar contrato" : "Registrar contrato"}</button></div>
           </form>
+
+          {ativo && mostrarRenovacao && (
+            <div className="panel" id="renovacao">
+              <div className="sec-h"><h2>Renovação</h2><span className="count">{respostas.length}/{(donos ?? []).length} responderam</span><span className="rule" /></div>
+              <div className="box">
+                {respostas.map((r) => (
+                  <div key={r.proprietario_id} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", padding: "9px 12px", borderBottom: "1px solid var(--line)" }}>
+                    <span style={{ flex: "1 1 140px" }}>{r.proprietarios.nome}</span>
+                    <span className={`pill renov-${r.decisao}`}>{RENOVACAO_LABEL[r.decisao]}{r.decisao === "novo_valor" && ` · ${BRL(r.valor_proposto)}`}</span>
+                    {r.comentario && <span className="small muted" style={{ flexBasis: "100%" }}>“{r.comentario}”</span>}
+                  </div>
+                ))}
+                {semResposta.map((d) => (
+                  <div key={d.proprietario_id} style={{ display: "flex", gap: 8, padding: "9px 12px", borderBottom: "1px solid var(--line)" }}>
+                    <span style={{ flex: 1 }}>{nomesDonos.get(d.proprietario_id)}</span><span className="pill aguardando">Aguardando</span>
+                  </div>
+                ))}
+              </div>
+              <form action={registrarRenovacao} style={{ display: "grid", gap: 10 }}>
+                <input type="hidden" name="imovel_id" value={imovel.id} />
+                <input type="hidden" name="contrato_id" value={ativo.id} />
+                <div className="row3">
+                  <div className="field"><label className="label" htmlFor="r_aluguel">Novo aluguel (R$)</label>
+                    <input id="r_aluguel" name="aluguel" required inputMode="decimal" defaultValue={Number(proposto ?? ativo.aluguel)} /></div>
+                  <div className="field"><label className="label" htmlFor="r_inicio">Novo início</label>
+                    <input id="r_inicio" name="inicio" type="date" required defaultValue={somarData(ativo.fim, 0, 1)} /></div>
+                  <div className="field"><label className="label" htmlFor="r_fim">Novo fim</label>
+                    <input id="r_fim" name="fim" type="date" required defaultValue={somarData(ativo.fim, 12)} /></div>
+                </div>
+                <div className="actions">
+                  <button className="btn primary">Registrar renovação</button>
+                </div>
+              </form>
+              {respostas.some((r) => r.decisao === "nao_renovar") && (
+                <form action={registrarNaoRenovacao} className="actions">
+                  <input type="hidden" name="imovel_id" value={imovel.id} />
+                  <input type="hidden" name="contrato_id" value={ativo.id} />
+                  <span className="small muted" style={{ flex: "1 1 200px" }}>Proprietário não quer renovar: o imóvel entra em devolução com chaves previstas para {data(ativo.fim)}.</span>
+                  <button className="btn sm">Registrar não renovação</button>
+                </form>
+              )}
+            </div>
+          )}
 
           {ativo && (
             <form action={encerrarContrato} className="actions">

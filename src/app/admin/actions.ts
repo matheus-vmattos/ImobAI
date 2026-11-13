@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import * as avisos from "@/lib/avisos";
+import { BRL, data } from "@/lib/format";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { exigirAdmin } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -35,7 +38,12 @@ export async function salvarProprietario(form: FormData) {
       pix: texto(form, "pix"),
       dados_bancarios: texto(form, "dados_bancarios"),
       observacoes: texto(form, "observacoes"),
+      forma_padrao: form.get("forma_padrao") === "repasse" ? "repasse" : "cobranca",
+      aprova_ate: numero(form, "aprova_ate") ?? 300,
+      pagador_id: texto(form, "pagador_id"),
+      desconta_vencidas: form.get("desconta_vencidas") === "on",
     };
+    if (id && dados.pagador_id === id) throw new Error("O pagador precisa ser outro proprietário.");
     if (id) {
       checar((await supabase.from("proprietarios").update(dados).eq("id", id)).error);
     } else {
@@ -83,6 +91,33 @@ export async function convidarProprietario(form: FormData) {
   voltar(back, { ok: `Convite enviado para ${p!.email}.` });
 }
 
+/** Outro login (cônjuge, sócio, contador) com acesso ao mesmo cadastro. */
+export async function adicionarAcesso(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const proprietario_id = String(form.get("proprietario_id"));
+  const back = `/admin/proprietarios/${proprietario_id}`;
+  const email = texto(form, "email")?.toLowerCase();
+  if (!email) voltar(back, { erro: "Informe o e-mail." });
+  const { error } = await supabase.from("proprietario_acessos").insert({ proprietario_id, email, nome: texto(form, "nome") });
+  if (error) voltar(back, { erro: error.code === "23505" ? "Esse e-mail já tem acesso." : error.message });
+  // quem ainda não tem login recebe convite; quem já tem é vinculado na hora (gatilho no banco)
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const { error: e2 } = await createServiceClient().auth.admin.inviteUserByEmail(email!, {
+    data: { nome: texto(form, "nome") }, redirectTo: `${site}/auth/confirm?next=/definir-senha`,
+  });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: e2 && /registered|exists/i.test(e2.message) ? `${email} já tinha login e foi vinculado.` : `Convite enviado para ${email}.` });
+}
+
+export async function removerAcesso(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const back = `/admin/proprietarios/${String(form.get("proprietario_id"))}`;
+  const { error } = await supabase.from("proprietario_acessos").delete().eq("id", String(form.get("id")));
+  if (error) voltar(back, { erro: error.message });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: "Acesso removido." });
+}
+
 /* ---------- condomínios ---------- */
 
 export async function salvarCondominio(form: FormData) {
@@ -98,6 +133,10 @@ export async function salvarCondominio(form: FormData) {
       cotas_padrao: numero(form, "cotas_padrao"),
       regra_padrao: texto(form, "regra_padrao"),
       observacoes: texto(form, "observacoes"),
+      iptu_inscricao: texto(form, "iptu_inscricao"),
+      energia_cliente: texto(form, "energia_cliente"),
+      agua_cliente: texto(form, "agua_cliente"),
+      inquilino_reembolsa: form.get("inquilino_reembolsa") === "on",
     };
     if (id) {
       checar((await supabase.from("condominios").update(dados).eq("id", id)).error);
@@ -120,6 +159,27 @@ export async function excluirCondominio(form: FormData) {
   if (error) voltar(`/admin/condominios/${id}`, { erro: "Não foi possível excluir: " + error.message });
   revalidatePath("/admin", "layout");
   voltar("/admin/condominios", { ok: "Condomínio excluído. Os imóveis dele viraram avulsos." });
+}
+
+export async function salvarTerceiro(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const condominio_id = String(form.get("condominio_id"));
+  const back = `/admin/condominios/${condominio_id}`;
+  const { error } = await supabase.from("terceiros").insert({
+    condominio_id, nome: texto(form, "nome") ?? "Terceiro", contato: texto(form, "contato"), cotas: numero(form, "cotas") ?? 1,
+  });
+  if (error) voltar(back, { erro: error.message });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: "Unidade de terceiro adicionada." });
+}
+
+export async function excluirTerceiro(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const back = `/admin/condominios/${String(form.get("condominio_id"))}`;
+  const { error } = await supabase.from("terceiros").delete().eq("id", String(form.get("id")));
+  if (error) voltar(back, { erro: error.message });
+  revalidatePath("/admin", "layout");
+  voltar(back, { ok: "Unidade de terceiro removida." });
 }
 
 /* ---------- imóveis ---------- */
@@ -158,6 +218,10 @@ export async function salvarImovel(form: FormData) {
       taxa_adm_pct: numero(form, "taxa_adm_pct") ?? 10,
       motivo_indisponivel: status === "indisponivel" ? texto(form, "motivo_indisponivel") : null,
       observacoes: texto(form, "observacoes"),
+      condominio_pago_por: form.get("condominio_pago_por") === "proprietario" ? "proprietario" : "imobiliaria",
+      iptu_inscricao: texto(form, "iptu_inscricao"),
+      energia_cliente: texto(form, "energia_cliente"),
+      agua_cliente: texto(form, "agua_cliente"),
     };
     if (id) {
       checar((await supabase.from("imoveis").update(dados).eq("id", id)).error);
@@ -205,6 +269,7 @@ export async function salvarContrato(form: FormData) {
       aviso_saida_em: texto(form, "aviso_saida_em"),
       entrega_chaves_prevista: texto(form, "entrega_chaves_prevista"),
       observacoes: texto(form, "observacoes"),
+      datas_a_conferir: false, // salvou: as datas foram conferidas
     };
     if (dados.fim < dados.inicio) throw new Error("O fim do contrato é anterior ao início.");
     if (id) {
@@ -235,4 +300,62 @@ export async function encerrarContrato(form: FormData) {
   }
   revalidatePath("/admin", "layout");
   voltar(back, { ok: "Contrato encerrado. Imóvel marcado como vazio." });
+}
+
+/* ---------- renovação (fase 3) ---------- */
+
+/** Encerra o contrato atual e abre o novo com as datas e o valor combinados. */
+export async function registrarRenovacao(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const imovel_id = String(form.get("imovel_id"));
+  const id = String(form.get("contrato_id"));
+  const back = `/admin/imoveis/${imovel_id}`;
+  try {
+    const aluguel = numero(form, "aluguel");
+    if (aluguel == null || aluguel <= 0) throw new Error('Preencha o campo "Novo aluguel".');
+    const inicio = obrigatorio(form, "inicio", "Novo início");
+    const fim = obrigatorio(form, "fim", "Novo fim");
+    if (fim < inicio) throw new Error("O fim do contrato é anterior ao início.");
+    const { data: atual, error } = await supabase.from("contratos").select("*").eq("id", id).eq("ativo", true).single();
+    checar(error);
+    checar((await supabase.from("contratos").update({ ativo: false }).eq("id", id)).error);
+    const novo = await supabase.from("contratos").insert({
+      imovel_id, inquilino: atual.inquilino, inquilino_contato: atual.inquilino_contato, aluguel, inicio, fim,
+      dia_vencimento: atual.dia_vencimento, ativo: true, observacoes: texto(form, "observacoes") ?? atual.observacoes,
+    });
+    if (novo.error) {
+      await supabase.from("contratos").update({ ativo: true }).eq("id", id);
+      checar(novo.error);
+    }
+    checar((await supabase.from("renovacoes").update({ concluida_em: new Date().toISOString() }).eq("contrato_id", id)).error);
+    checar((await supabase.from("imoveis").update({ status: "locado" }).eq("id", imovel_id)).error);
+  } catch (e) {
+    voltar(back, { erro: mensagem(e) });
+  }
+  const aluguel = numero(form, "aluguel")!, fim = String(form.get("fim"));
+  after(() => avisos.renovacaoRegistrada(imovel_id, `contrato renovado até ${data(fim)}, aluguel de ${BRL(aluguel)}.`));
+  revalidatePath("/admin", "layout");
+  revalidatePath("/portal", "layout");
+  voltar(back, { ok: "Contrato renovado." });
+}
+
+/** Proprietário não quer renovar: o imóvel entra em devolução com entrega das chaves no fim do contrato. */
+export async function registrarNaoRenovacao(form: FormData) {
+  const { supabase } = await exigirAdmin();
+  const imovel_id = String(form.get("imovel_id"));
+  const id = String(form.get("contrato_id"));
+  const back = `/admin/imoveis/${imovel_id}`;
+  try {
+    const { data: atual, error } = await supabase.from("contratos").select("fim, entrega_chaves_prevista").eq("id", id).eq("ativo", true).single();
+    checar(error);
+    checar((await supabase.from("contratos").update({ entrega_chaves_prevista: atual!.entrega_chaves_prevista ?? atual!.fim }).eq("id", id)).error);
+    checar((await supabase.from("renovacoes").update({ concluida_em: new Date().toISOString() }).eq("contrato_id", id)).error);
+    checar((await supabase.from("imoveis").update({ status: "devolucao" }).eq("id", imovel_id)).error);
+  } catch (e) {
+    voltar(back, { erro: mensagem(e) });
+  }
+  after(() => avisos.renovacaoRegistrada(imovel_id, "registramos que o contrato não será renovado. O imóvel entra em devolução e avisaremos o inquilino."));
+  revalidatePath("/admin", "layout");
+  revalidatePath("/portal", "layout");
+  voltar(back, { ok: "Não renovação registrada. Imóvel em devolução." });
 }

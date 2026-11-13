@@ -48,6 +48,21 @@ export function ImovelForm({ imovel, condominios, proprietarios, donos, condomin
         <div className="field"><label className="label" htmlFor="seguro_incendio_mensal">Seguro incêndio mensal (R$)</label>
           <input id="seguro_incendio_mensal" name="seguro_incendio_mensal" inputMode="decimal" defaultValue={i?.seguro_incendio_mensal ?? ""} /></div>
       </div>
+      <div className="row3">
+        <div className="field"><label className="label" htmlFor="iptu_inscricao">Inscrição do IPTU</label>
+          <input id="iptu_inscricao" name="iptu_inscricao" defaultValue={i?.iptu_inscricao ?? ""} /></div>
+        <div className="field"><label className="label" htmlFor="energia_cliente">Nº cliente energia</label>
+          <input id="energia_cliente" name="energia_cliente" defaultValue={i?.energia_cliente ?? ""} /></div>
+        <div className="field"><label className="label" htmlFor="agua_cliente">Nº cliente água</label>
+          <input id="agua_cliente" name="agua_cliente" defaultValue={i?.agua_cliente ?? ""} /></div>
+      </div>
+      <small className="muted" style={{ marginTop: -8 }}>Só preencha se o imóvel tiver o próprio. Em branco, vale o do condomínio.</small>
+      <div className="field"><label className="label" htmlFor="condominio_pago_por">Boleto do condomínio</label>
+        <select id="condominio_pago_por" name="condominio_pago_por" defaultValue={i?.condominio_pago_por ?? "imobiliaria"}>
+          <option value="imobiliaria">A imobiliária paga e cobra do responsável</option>
+          <option value="proprietario">O proprietário paga direto (só registrar)</option>
+        </select>
+        <small>Condomínio ordinário de imóvel locado é do inquilino; vazio, do proprietário.</small></div>
       <div className="field"><label className="label" htmlFor="motivo_indisponivel">Motivo (se indisponível)</label>
         <input id="motivo_indisponivel" name="motivo_indisponivel" placeholder="Em reforma até jan/2027" defaultValue={i?.motivo_indisponivel ?? ""} /></div>
       <div className="field"><label className="label" htmlFor="observacoes">Observações</label>

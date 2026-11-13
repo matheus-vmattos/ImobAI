@@ -1,3 +1,4 @@
+import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { entrar, esqueciSenha } from "./actions";
@@ -8,7 +9,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   return (
     <div className="auth">
       <div className="auth-card">
-        <div className="brand"><i />ImobAI</div>
+        <div className="brand"><span className="logo"><Icon name="logo" /></span>ImobAI</div>
         <Aviso erro={erro} ok={ok} />
         {recuperar ? (
           <form action={esqueciSenha} className="panel">

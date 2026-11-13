@@ -1,19 +1,30 @@
-import { Topo } from "@/components/Topo";
+import { controlaAlugueis } from "@/lib/cobrancas";
+import { Shell } from "@/components/Topo";
+import type { NavItem } from "@/components/NavLinks";
 import { exigirAdmin } from "@/lib/auth";
-
-const LINKS = [
-  { href: "/admin", label: "Visão geral" },
-  { href: "/admin/proprietarios", label: "Proprietários" },
-  { href: "/admin/condominios", label: "Condomínios" },
-  { href: "/admin/imoveis", label: "Imóveis" },
-];
+import { MARCA } from "@/lib/marca";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { nome, user } = await exigirAdmin();
-  return (
-    <>
-      <Topo links={LINKS} nome={nome ?? user.email ?? "Imobiliária"} />
-      <main className="wrap">{children}</main>
-    </>
-  );
+  const { nome, user, supabase } = await exigirAdmin();
+  const [{ count: conferir }, controla] = await Promise.all([
+    supabase.from("pagamentos").select("*", { count: "exact", head: true }).eq("status", "informado"),
+    controlaAlugueis(supabase),
+  ]);
+  const links: NavItem[] = [
+    { href: "/admin", label: "Visão geral", icon: "grid" },
+    { href: "/admin/imoveis", label: "Imóveis", icon: "home", grupo: "Carteira" },
+    { href: "/admin/proprietarios", label: "Proprietários", icon: "users", grupo: "Carteira" },
+    { href: "/admin/condominios", label: "Condomínios", icon: "building", grupo: "Carteira" },
+    { href: "/admin/visao", label: "Visão do proprietário", icon: "users", grupo: "Carteira" },
+    ...(controla ? [{ href: "/admin/alugueis", label: "Aluguéis", icon: "bank", grupo: "Financeiro" } as NavItem] : []),
+    { href: "/admin/despesas", label: "Despesas", icon: "receipt", grupo: "Financeiro" },
+    { href: "/admin/cobrancas", label: "Cobranças", icon: "coins", grupo: "Financeiro", badge: conferir ?? 0 },
+    { href: "/admin/inquilinos", label: "A cobrar dos inquilinos", icon: "users", grupo: "Financeiro" },
+    { href: "/admin/repasses", label: "Repasses", icon: "wallet", grupo: "Financeiro" },
+    { href: "/admin/notificacoes", label: "E-mails", icon: "mail", grupo: "Imobiliária" },
+    { href: "/admin/importar", label: "Importar carteira", icon: "upload", grupo: "Imobiliária" },
+    { href: "/admin/atividade", label: "Atividade", icon: "repeat", grupo: "Imobiliária" },
+    { href: "/admin/configuracoes", label: "Configurações", icon: "file", grupo: "Imobiliária" },
+  ];
+  return <Shell links={links} nome={nome ?? user.email ?? "Imobiliária"} papel="Administrador" marca={MARCA}>{children}</Shell>;
 }

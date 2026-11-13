@@ -1,3 +1,4 @@
+import { Icon } from "@/components/Icon";
 import { Aviso } from "@/components/Aviso";
 import { definirSenha } from "@/app/login/actions";
 
@@ -6,7 +7,7 @@ export default async function DefinirSenha({ searchParams }: { searchParams: Pro
   return (
     <div className="auth">
       <div className="auth-card">
-        <div className="brand"><i />ImobAI</div>
+        <div className="brand"><span className="logo"><Icon name="logo" /></span>ImobAI</div>
         <Aviso erro={erro} />
         <form action={definirSenha} className="panel">
           <span className="label">Criar senha</span>
