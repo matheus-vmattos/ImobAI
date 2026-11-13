@@ -295,3 +295,10 @@ input::placeholder, textarea::placeholder { color: var(--dim) }
 .enviando { pointer-events: none; opacity: .65; position: relative }
 .enviando::after { content: ""; width: 12px; height: 12px; margin-left: 8px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: gira .7s linear infinite; display: inline-block; vertical-align: -1px }
 @keyframes gira { to { transform: rotate(360deg) } }
+
+/* visão do proprietário (admin vendo o portal): faixa no topo e ações desativadas */
+.faixa-visao { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 14px; margin-bottom: 18px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--panel-2); font-size: 13.5px; position: sticky; top: 8px; z-index: 5 }
+.faixa-visao .faixa-acoes { display: flex; gap: 8px }
+.so-leitura .page form button, .so-leitura .page form input, .so-leitura .page form textarea, .so-leitura .page form select { pointer-events: none; opacity: .45 }
+.so-leitura .page .faixa-visao form button { pointer-events: auto; opacity: 1 }

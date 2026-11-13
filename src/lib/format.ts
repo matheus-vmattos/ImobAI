@@ -49,3 +49,8 @@ export const hojeSP = (agora = new Date()) => new Intl.DateTimeFormat("en-CA", {
 export const diaSP = (iso: string) => (iso.length > 10 ? hojeSP(new Date(iso)) : iso);
 /** Mês atual em São Paulo ("2026-11"). */
 export const mesSP = (agora = new Date()) => hojeSP(agora).slice(0, 7);
+
+/** "vence em 17 dias", "vence hoje", "venceu há 13 dias" */
+export const prazoTxt = (fim: string) => { const d = diasAte(fim); return d < 0 ? `venceu há ${-d} ${d === -1 ? "dia" : "dias"}` : d === 0 ? "vence hoje" : `vence em ${d} ${d === 1 ? "dia" : "dias"}`; };
+/** "vago há 40 dias"; no dia da mudança (ou recém-cadastrado), só "vago" */
+export const haTxt = (rotulo: string, dias: number) => dias >= 1 ? `${rotulo} há ${dias} ${dias === 1 ? "dia" : "dias"}` : rotulo;

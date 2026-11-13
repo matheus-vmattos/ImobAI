@@ -2,12 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Imprimir } from "@/components/Imprimir";
 import { RelatorioRepasse, SELECT_REPASSE, type RepasseFechado } from "@/components/RelatorioRepasse";
-import { getSessao } from "@/lib/auth";
+import { getSessaoPortal } from "@/lib/auth";
 import { nomeMes } from "@/lib/format";
 
 export default async function RepassePortal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase } = await getSessao();
+  const { supabase } = await getSessaoPortal();
   const { data } = await supabase.from("repasses").select(SELECT_REPASSE).eq("id", id).maybeSingle();
   if (!data) notFound();
   const r = data as unknown as RepasseFechado;

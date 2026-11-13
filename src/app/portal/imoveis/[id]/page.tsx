@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import { Copiar } from "@/components/Copiar";
 import { Icon } from "@/components/Icon";
 import { ALUGUEL_TXT, situacaoAluguel } from "@/lib/aluguel";
+import { controlaAlugueis } from "@/lib/cobrancas";
 import { SITUACAO_LABEL } from "@/lib/types";
 import { StatusPill } from "@/components/StatusPill";
-import { getSessao } from "@/lib/auth";
-import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS, hojeSP, mesSP, diaSP, nomeMes } from "@/lib/format";
+import { getSessaoPortal } from "@/lib/auth";
+import { BRL, BRL0, data, diasAte, haTxt, RENOVACAO_DIAS, hojeSP, mesSP, diaSP, nomeMes } from "@/lib/format";
 import type { Contrato, Imovel } from "@/lib/types";
 import { carregarDespesas } from "../../despesas";
 import { Renovacoes } from "../../Renovacoes";
@@ -14,7 +15,7 @@ import type { Renovacao } from "@/lib/types";
 
 export default async function ImovelPortal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, proprietarioIds } = await getSessao();
+  const { supabase, proprietarioIds } = await getSessaoPortal();
   const { data: i } = await supabase.from("imoveis")
     .select("*, condominios(nome, endereco, iptu_inscricao, energia_cliente, agua_cliente), contratos(*), imovel_proprietarios(percentual, proprietario_id)")
     .eq("id", id).maybeSingle();
@@ -38,8 +39,8 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
   if (im.seguro_incendio_mensal) linhas.push(["Seguro incêndio (mensal)", -Number(im.seguro_incendio_mensal) * pct / 100]);
   const [{ descontosPorImovel, despesas }, { data: als }] = await Promise.all([
     carregarDespesas(supabase),
-    supabase.from("alugueis").select("competencia, vencimento, valor, recebido_em, valor_recebido, contratos!inner(imovel_id, inquilino)")
-      .eq("contratos.imovel_id", id).order("competencia", { ascending: false }).limit(12),
+    (await controlaAlugueis(supabase)) ? supabase.from("alugueis").select("competencia, vencimento, valor, recebido_em, valor_recebido, contratos!inner(imovel_id, inquilino)")
+      .eq("contratos.imovel_id", id).order("competencia", { ascending: false }).limit(12) : Promise.resolve({ data: null }),
   ]);
   const hoje = hojeSP();
   const alugueis = ((als ?? []) as unknown as { competencia: string; vencimento: string; valor: number; recebido_em: string | null; valor_recebido: number | null; contratos: { inquilino: string } }[])
@@ -75,9 +76,9 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
               <div className="kpis" style={{ gridTemplateColumns: "repeat(3, minmax(0,1fr))" }}>
                 <div className="kpi"><span className="label">Aluguel</span><span className="v" style={{ fontSize: 16 }}>{BRL0(c.aluguel)}</span></div>
                 <div className="kpi"><span className="label">{im.status === "devolucao" ? "Chaves" : "Até"}</span><span className="v" style={{ fontSize: 16 }}>{data(im.status === "devolucao" ? c.entrega_chaves_prevista : c.fim).replace(/\/20(\d\d)$/, "/$1")}</span></div>
-                <div className="kpi"><span className="label">Restam</span>
+                <div className="kpi"><span className="label">{(im.status === "devolucao" && c.entrega_chaves_prevista ? diasAte(c.entrega_chaves_prevista) : dias!) < 0 ? "Venceu há" : "Restam"}</span>
                   <span className="v" style={{ fontSize: 16, color: im.status === "devolucao" ? "var(--dev)" : dias! <= RENOVACAO_DIAS ? "var(--warn)" : undefined }}>
-                    {im.status === "devolucao" && c.entrega_chaves_prevista ? diasAte(c.entrega_chaves_prevista) : dias} dias</span></div>
+                    {Math.abs(im.status === "devolucao" && c.entrega_chaves_prevista ? diasAte(c.entrega_chaves_prevista) : dias!)} dias</span></div>
               </div>
               {doMes && (
                 <div className="mv" style={{ border: "1px solid var(--line)", borderRadius: 9 }}>
@@ -97,7 +98,7 @@ export default async function ImovelPortal({ params }: { params: Promise<{ id: s
           ) : im.status === "indisponivel" ? (
             <p className="muted" style={{ margin: 0 }}>{im.motivo_indisponivel ?? "Imóvel indisponível no momento."}</p>
           ) : (
-            <p className="muted" style={{ margin: 0 }}>Vago há {Math.max(0, -diasAte((im as unknown as { status_desde: string }).status_desde))} dias. Disponível para locação{im.aluguel_pedido ? ` por ${BRL0(im.aluguel_pedido)}` : ""}.</p>
+            <p className="muted" style={{ margin: 0 }}>{haTxt("Vago", Math.max(0, -diasAte((im as unknown as { status_desde: string }).status_desde)))}. Disponível para locação{im.aluguel_pedido ? ` por ${BRL0(im.aluguel_pedido)}` : ""}.</p>
           )}
         </div>
 

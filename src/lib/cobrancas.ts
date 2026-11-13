@@ -8,10 +8,17 @@ import { hojeSP } from "@/lib/format";
 const centavos = (n: number) => Math.round(n * 100) / 100;
 const somaDias = (iso: string, d: number) => new Date(new Date(iso + "T12:00:00Z").getTime() + d * 864e5).toISOString().slice(0, 10);
 
-export type Config = { favorecido: string | null; banco: string | null; pix: string | null; abono_ate: number; cobranca_dia: number; cobranca_prazo: number; repasse_dia: number };
+export type Config = { favorecido: string | null; banco: string | null; pix: string | null; abono_ate: number; cobranca_dia: number; cobranca_prazo: number; repasse_dia: number; controla_alugueis: boolean };
 export async function lerConfig(db: SupabaseClient): Promise<Config> {
   const { data } = await db.from("config").select("*").maybeSingle();
-  return { favorecido: null, banco: null, pix: null, abono_ate: 5, cobranca_dia: 1, cobranca_prazo: 7, repasse_dia: 10, ...(data ?? {}) } as Config;
+  return { favorecido: null, banco: null, pix: null, abono_ate: 5, cobranca_dia: 1, cobranca_prazo: 7, repasse_dia: 10, controla_alugueis: false, ...(data ?? {}) } as Config;
+}
+
+/** A imobiliária controla aqui se o inquilino pagou? Desligado (padrão): o recebimento fica no ERP,
+ *  o portal mostra só o valor do aluguel e o repasse usa o valor do contrato. */
+export async function controlaAlugueis(db: SupabaseClient) {
+  const { data } = await db.from("config").select("controla_alugueis").maybeSingle();
+  return !!data?.controla_alugueis;
 }
 
 type ItemPend = {

@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { ALUGUEL_TXT } from "@/lib/aluguel";
-import { getSessao } from "@/lib/auth";
-import { BRL0 } from "@/lib/format";
+import { getSessaoPortal } from "@/lib/auth";
+import { BRL0, haTxt } from "@/lib/format";
 import { carregarPortal } from "../dados";
 import { Predios } from "../Predios";
 import { COR_IMOVEL, predios, SITUACAO_IMOVEL } from "../resumo";
 
 export default async function MeusImoveis({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
   const { ver } = await searchParams;
-  const { supabase, proprietarioIds } = await getSessao();
+  const { supabase, proprietarioIds } = await getSessaoPortal();
   const { imoveis, condominios } = await carregarPortal(supabase, proprietarioIds);
   const lista = predios(imoveis, condominios);
   const alugados = imoveis.filter((i) => i.status === "locado").length;
@@ -31,7 +31,7 @@ export default async function MeusImoveis({ searchParams }: { searchParams: Prom
           <div className="cartoes">{sel.map((u) => (
             <Link key={u.id} href={`/portal/imoveis/${u.id}`} className="cartao">
               <b>{u.nome}</b><small>{nomeCondo(u.condominioId) ?? "Imóvel avulso"}</small>
-              <small style={{ color: filtro === "atrasados" ? "var(--bad)" : undefined }}>{filtro === "atrasados" && u.aluguelMes ? ALUGUEL_TXT(u.aluguelMes) : `vago há ${u.diasNaSituacao} dias`}</small>
+              <small style={{ color: filtro === "atrasados" ? "var(--bad)" : undefined }}>{filtro === "atrasados" && u.aluguelMes ? ALUGUEL_TXT(u.aluguelMes) : haTxt("vago", u.diasNaSituacao)}</small>
               <span className="s"><i className="dot" style={{ background: COR_IMOVEL[u.status] }} />{SITUACAO_IMOVEL[u.status]}{u.aluguel ? ` · ${BRL0(u.aluguel * u.percentual / 100)}` : ""}</span>
             </Link>
           ))}</div>

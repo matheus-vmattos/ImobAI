@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Icon } from "@/components/Icon";
-import { getSessao } from "@/lib/auth";
-import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS } from "@/lib/format";
+import { getSessaoPortal } from "@/lib/auth";
+import { BRL, BRL0, data, diasAte, prazoTxt, RENOVACAO_DIAS } from "@/lib/format";
 import { MARCA } from "@/lib/marca";
 import type { Renovacao } from "@/lib/types";
 import { carregarConta } from "./conta";
@@ -18,7 +18,7 @@ const saudacao = () => {
 
 export default async function Portal({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
-  const { supabase, proprietarioIds, cadastros } = await getSessao();
+  const { supabase, proprietarioIds, cadastros } = await getSessaoPortal();
   const [{ imoveis, condominios }, { pendentes }, { data: rens }, conta, recebe] = await Promise.all([
     carregarPortal(supabase, proprietarioIds),
     carregarDespesas(supabase),
@@ -39,7 +39,7 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
       href: conta.abertas.length === 1 ? `/portal/cobrancas/${conta.abertas[0].id}` : "/portal/extrato",
     }] : []),
     ...pendentes.map((d) => ({ k: d.id, ic: "check", cls: "accent", t: "Aprovar despesa", s: `${d.descricao} · ${d.onde}`, v: BRL(d.total), href: `/portal/decidir#${d.id}` })),
-    ...renovar.map((i) => ({ k: i.id, ic: "refresh", cls: "dev", t: "Renovar contrato?", s: `${[nomeCondo(i.condominioId), i.nome].filter(Boolean).join(" · ")} · vence em ${diasAte(i.fim!)} dias`, v: "", href: `/portal/imoveis/${i.id}#renovacoes` })),
+    ...renovar.map((i) => ({ k: i.id, ic: "refresh", cls: "dev", t: "Renovar contrato?", s: `${[nomeCondo(i.condominioId), i.nome].filter(Boolean).join(" · ")} · ${prazoTxt(i.fim!)}`, v: "", href: `/portal/imoveis/${i.id}#renovacoes` })),
   ];
   const lista = predios(imoveis, condominios);
   const atrasados = imoveis.filter((i) => i.aluguelMes?.situacao === "atrasado");
@@ -102,7 +102,7 @@ export default async function Portal({ searchParams }: { searchParams: Promise<{
               {vagos.length > 0 && (
                 <Link href="/portal/imoveis?ver=vagos" className="mv" style={{ textDecoration: "none" }}>
                   <span className="ic warn"><Icon name="home" /></span>
-                  <span className="t"><b>{vagos.length} {vagos.length === 1 ? "imóvel vago" : "imóveis vagos"}</b><small>o mais antigo há {Math.max(...vagos.map((v) => v.diasNaSituacao))} dias</small></span>
+                  <span className="t"><b>{vagos.length} {vagos.length === 1 ? "imóvel vago" : "imóveis vagos"}</b><small>{Math.max(...vagos.map((v) => v.diasNaSituacao)) >= 1 ? `o mais antigo há ${Math.max(...vagos.map((v) => v.diasNaSituacao))} dias` : "veja quais"}</small></span>
                   <Icon name="chev" className="dim" />
                 </Link>
               )}

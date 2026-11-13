@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSessao } from "@/lib/auth";
+import { getSessaoPortal } from "@/lib/auth";
 import type { LinhaCobranca } from "@/lib/contaCorrente";
 import { BRL, data, hojeSP } from "@/lib/format";
 import { saldoCobranca, type CobrancaPortal } from "../../conta";
@@ -8,7 +8,7 @@ import { DadosPagamento } from "../../DadosPagamento";
 
 export default async function CobrancaPortal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase } = await getSessao();
+  const { supabase } = await getSessaoPortal();
   const [{ data: c }, { data: cfg }] = await Promise.all([
     supabase.from("cobrancas").select("*").eq("id", id).maybeSingle<CobrancaPortal>(),
     supabase.from("config").select("favorecido, banco, pix").maybeSingle(),

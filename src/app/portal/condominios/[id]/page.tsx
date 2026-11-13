@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Copiar } from "@/components/Copiar";
 import { ALUGUEL_TXT } from "@/lib/aluguel";
-import { getSessao } from "@/lib/auth";
-import { BRL, BRL0, diasAte, RENOVACAO_DIAS, mesSP } from "@/lib/format";
+import { getSessaoPortal } from "@/lib/auth";
+import { BRL, BRL0, diasAte, haTxt, prazoTxt, RENOVACAO_DIAS, mesSP } from "@/lib/format";
 import type { StatusImovel } from "@/lib/types";
 import { carregarPortal } from "../../dados";
 import { carregarDespesas } from "../../despesas";
@@ -14,7 +14,7 @@ const mmaa = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 export default async function PredioPortal({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ver?: string }> }) {
   const [{ id }, { ver }] = await Promise.all([params, searchParams]);
   const condId = id === "avulsos" ? null : id;
-  const { supabase, proprietarioIds } = await getSessao();
+  const { supabase, proprietarioIds } = await getSessaoPortal();
   const [{ imoveis, condominios }, { despesas }, { data: cond }] = await Promise.all([
     carregarPortal(supabase, proprietarioIds),
     carregarDespesas(supabase),
@@ -71,7 +71,7 @@ export default async function PredioPortal({ params, searchParams }: { params: P
               <Link key={u.id} href={`/portal/imoveis/${u.id}`} className="cartao">
                 <b>{u.nome}</b>
                 <small style={{ color: vence ? "var(--warn)" : undefined }}>
-                  {vence ? `contrato vence em ${diasAte(u.fim!)} dias` : u.status === "locado" && u.fim ? `contrato até ${mmaa(u.fim)}` : u.status === "vazio" ? `vago há ${u.diasNaSituacao} ${u.diasNaSituacao === 1 ? "dia" : "dias"}` : u.status === "devolucao" ? "inquilino saindo" : u.motivo ?? "indisponível"}
+                  {vence ? `contrato ${prazoTxt(u.fim!)}` : u.status === "locado" && u.fim ? `contrato até ${mmaa(u.fim)}` : u.status === "vazio" ? haTxt("vago", u.diasNaSituacao) : u.status === "devolucao" ? "inquilino saindo" : u.motivo ?? "indisponível"}
                   {u.percentual < 100 ? ` · sua parte ${u.percentual}%` : ""}
                 </small>
                 {u.aluguelMes && (u.status === "locado" || u.status === "devolucao") && (

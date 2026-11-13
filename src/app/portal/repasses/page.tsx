@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { getSessao } from "@/lib/auth";
+import { getSessaoPortal } from "@/lib/auth";
 import { BRL, data, nomeMes } from "@/lib/format";
 
 export default async function MeusRepasses() {
-  const { supabase } = await getSessao();
+  const { supabase } = await getSessaoPortal();
   const { data: rs } = await supabase.from("repasses").select("id, competencia, aluguel, taxa_adm, seguro, despesas, liquido, fechado_em").order("competencia", { ascending: false });
   const lista = (rs ?? []) as { id: string; competencia: string; aluguel: number; taxa_adm: number; seguro: number; despesas: number; liquido: number; fechado_em: string }[];
   return (

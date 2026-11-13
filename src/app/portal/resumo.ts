@@ -1,3 +1,4 @@
+import { controlaAlugueis } from "@/lib/cobrancas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calcularPrevia } from "@/app/admin/repasses/dados";
 import { diasAte, mesRelativo, RENOVACAO_DIAS, mesSP } from "@/lib/format";
@@ -40,7 +41,7 @@ export async function proximoRecebimento(supabase: SupabaseClient, proprietarioI
   const { data: cfg } = await supabase.from("config").select("repasse_dia").maybeSingle();
   const dia = `${String(cfg?.repasse_dia ?? 10).padStart(2, "0")}/${mesRelativo(mes, 1).slice(5, 7)}`;
   const { data: fechados } = await supabase.from("repasses").select("id, liquido").eq("competencia", `${mes}-01`).in("proprietario_id", proprietarioIds);
-  const { data: al } = await supabase.from("alugueis").select("recebido_em").eq("competencia", `${mes}-01`);
+  const { data: al } = await controlaAlugueis(supabase) ? await supabase.from("alugueis").select("recebido_em").eq("competencia", `${mes}-01`) : { data: [] };
   const pagos = (al ?? []).filter((a) => a.recebido_em).length, total = (al ?? []).length;
   if (fechados?.length) return { valor: fechados.reduce((a, r) => a + Number(r.liquido), 0), dia, fechado: true, pagos, total, mes, repasseId: fechados.length === 1 ? fechados[0].id as string : null };
   const previa = (await calcularPrevia(supabase, mes, { garantir: false })).filter((r) => proprietarioIds.includes(r.proprietarioId));

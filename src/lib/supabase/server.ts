@@ -2,12 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-export async function createClient() {
+/** headers: extras para o banco (ex.: x-ver-como na visão do proprietário). */
+export async function createClient(headers?: Record<string, string>) {
   const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...(headers ? { global: { headers } } : {}),
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll(list) {

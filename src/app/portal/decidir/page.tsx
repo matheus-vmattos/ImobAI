@@ -1,5 +1,5 @@
 import { Aviso } from "@/components/Aviso";
-import { getSessao } from "@/lib/auth";
+import { getSessaoPortal } from "@/lib/auth";
 import { diasAte, RENOVACAO_DIAS } from "@/lib/format";
 import type { Renovacao } from "@/lib/types";
 import { carregarPortal } from "../dados";
@@ -10,7 +10,7 @@ import { Renovacoes, type ContratoRenovacao } from "../Renovacoes";
 
 export default async function Decidir({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
-  const { supabase, proprietarioIds } = await getSessao();
+  const { supabase, proprietarioIds } = await getSessaoPortal();
   const [{ imoveis, condominios }, { pendentes, historico }, { data: rens }] = await Promise.all([
     carregarPortal(supabase, proprietarioIds), carregarDespesas(supabase), supabase.from("renovacoes").select("*"),
   ]);

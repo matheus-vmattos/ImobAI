@@ -14,8 +14,15 @@ const voltar = (params: Record<string, string>, ancora = "pendencias", path = "/
   redirect(`${path}?${new URLSearchParams(params)}#${ancora}`);
 const DECISOES = ["desconto", "reembolso", "proprio"];
 
+/** Ações do portal são só do proprietário: o admin na visão do proprietário fica só olhando. */
+async function sessaoDoProprietario() {
+  const s = await getSessao();
+  if (s.papel === "admin") redirect("/portal?erro=" + encodeURIComponent("Visão do proprietário é só leitura."));
+  return s;
+}
+
 export async function responderDespesa(form: FormData) {
-  const { supabase, user } = await getSessao();
+  const { supabase, user } = await sessaoDoProprietario();
   const despesa = String(form.get("despesa_id"));
   const decisao = String(form.get("decisao") ?? "");
   const comentario = String(form.get("comentario") ?? "").trim() || null;
@@ -31,7 +38,7 @@ export async function responderDespesa(form: FormData) {
 }
 
 export async function descontarTodas(form: FormData) {
-  const { supabase, user } = await getSessao();
+  const { supabase, user } = await sessaoDoProprietario();
   const ids = form.getAll("despesa_id").map(String);
   for (const id of ids) {
     const { error } = await supabase.rpc("responder_despesa", { p_despesa: id, p_decisao: "desconto", p_comentario: null });
@@ -43,7 +50,7 @@ export async function descontarTodas(form: FormData) {
 }
 
 export async function informarReembolso(form: FormData) {
-  const { supabase, user } = await getSessao();
+  const { supabase, user } = await sessaoDoProprietario();
   const concluido = form.get("concluido") === "1";
   const despesa = String(form.get("despesa_id"));
   const { error } = await supabase.rpc("informar_reembolso", { p_despesa: despesa, p_concluido: concluido });
@@ -56,7 +63,7 @@ export async function informarReembolso(form: FormData) {
 const RENOVACAO = ["atual", "novo_valor", "nao_renovar"];
 
 export async function responderRenovacao(form: FormData) {
-  const { supabase, user } = await getSessao();
+  const { supabase, user } = await sessaoDoProprietario();
   const contrato = String(form.get("contrato_id"));
   const decisao = String(form.get("decisao") ?? "");
   const pedido = String(form.get("voltar") ?? "");
@@ -77,7 +84,7 @@ const FORMAS = ["deposito", "pix", "transferencia", "outro"];
 
 /** Proprietário informa um pagamento com um ou mais comprovantes; a imobiliária confere. */
 export async function informarPagamento(form: FormData) {
-  const { proprietarioIds } = await getSessao();
+  const { proprietarioIds } = await sessaoDoProprietario();
   const pagador = String(form.get("pagador_id"));
   const back = `/portal/pagar?${new URLSearchParams({ cobranca: String(form.get("cobranca_id") ?? "") })}`;
   let id = "";

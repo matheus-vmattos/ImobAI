@@ -2,6 +2,7 @@ import { hojeSP, mesSP } from "@/lib/format";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calcularRepasses, mesDe, type DescontoRepasse, type ImovelRepasse } from "@/lib/repasse";
 import { garantirAlugueis } from "../alugueis/dados";
+import { controlaAlugueis } from "@/lib/cobrancas";
 
 type ImRow = {
   id: string; identificacao: string; endereco: string | null; taxa_adm_pct: number; seguro_incendio_mensal: number | null;
@@ -14,14 +15,15 @@ type ItemRow = { id: string; proprietario_id: string; imovel_id: string; valor: 
 /** Prévia do repasse do mês para todos os proprietários (cliente admin). */
 export async function calcularPrevia(supabase: SupabaseClient, competencia: string, opts: { garantir?: boolean } = {}) {
   const { ini, fim } = mesDe(competencia);
-  if (opts.garantir !== false) await garantirAlugueis(supabase, competencia);
+  const controla = await controlaAlugueis(supabase);
+  if (controla && opts.garantir !== false) await garantirAlugueis(supabase, competencia);
   const [{ data: im }, { data: it }, { data: al }] = await Promise.all([
     supabase.from("imoveis")
       .select("id, identificacao, endereco, taxa_adm_pct, seguro_incendio_mensal, condominios(nome), imovel_proprietarios(proprietario_id, percentual), contratos(id, aluguel, inicio, fim, inquilino)")
       .lte("contratos.inicio", fim).gte("contratos.fim", ini),
     supabase.from("despesa_itens").select("id, proprietario_id, imovel_id, valor, taxa_adm, despesas!inner(descricao, status)")
       .eq("decisao", "desconto").eq("responsavel", "proprietario").is("repasse_id", null).eq("despesas.status", "enviada"),
-    supabase.from("alugueis").select("contrato_id, valor_recebido").eq("competencia", ini),
+    controla ? supabase.from("alugueis").select("contrato_id, valor_recebido").eq("competencia", ini) : Promise.resolve({ data: null }),
   ]);
   // só entra no repasse o aluguel que o inquilino pagou
   const recebido = new Map((al ?? []).map((a) => [a.contrato_id as string, a.valor_recebido == null ? null : Number(a.valor_recebido)]));
@@ -31,7 +33,8 @@ export async function calcularPrevia(supabase: SupabaseClient, competencia: stri
     taxaPct: Number(r.taxa_adm_pct),
     seguro: r.seguro_incendio_mensal != null ? Number(r.seguro_incendio_mensal) : null,
     donos: r.imovel_proprietarios.map((d) => ({ proprietarioId: d.proprietario_id, percentual: Number(d.percentual) })),
-    contratos: r.contratos.map((c) => ({ ...c, aluguel: Number(c.aluguel), recebido: recebido.has(c.id) ? recebido.get(c.id)! : null })),
+    // sem controle de recebimento: undefined = usa o aluguel do contrato
+    contratos: r.contratos.map((c) => ({ ...c, aluguel: Number(c.aluguel), recebido: !controla ? undefined : recebido.has(c.id) ? recebido.get(c.id)! : null })),
   }));
   const descontos: DescontoRepasse[] = ((it ?? []) as unknown as ItemRow[]).map((i) => ({
     itemId: i.id, proprietarioId: i.proprietario_id, imovelId: i.imovel_id, descricao: i.despesas.descricao, valor: Number(i.valor), taxaAdm: Number(i.taxa_adm),

@@ -1,3 +1,4 @@
+import { verComo } from "@/app/admin/visao/actions";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Aviso } from "@/components/Aviso";
@@ -29,6 +30,7 @@ export default async function EditarProprietario({ params, searchParams }: {
       <section className="hero">
         <div className="crumbs"><Link href="/admin/proprietarios">Proprietários</Link><span>/</span><span>{p.nome}</span></div>
         <h1>{p.nome}</h1>
+        <form action={verComo} className="actions"><input type="hidden" name="proprietario_id" value={p.id} /><button className="btn">Ver o portal como ele vê</button></form>
       </section>
       <Aviso ok={ok} erro={erro} />
       <div className="cols">

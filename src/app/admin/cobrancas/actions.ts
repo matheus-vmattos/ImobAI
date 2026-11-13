@@ -107,6 +107,7 @@ export async function salvarConfig(form: FormData) {
     cobranca_dia: Math.min(6, Math.max(0, Number(form.get("cobranca_dia") ?? 1))),
     cobranca_prazo: Math.max(1, numero(form, "cobranca_prazo") ?? 7),
     repasse_dia: Math.min(28, Math.max(1, numero(form, "repasse_dia") ?? 10)),
+    controla_alugueis: form.get("controla_alugueis") === "1",
   }).eq("id", true);
   if (error) voltar("/admin/configuracoes", { erro: error.message });
   atualizar();

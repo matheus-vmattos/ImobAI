@@ -1,3 +1,4 @@
+import { controlaAlugueis } from "@/lib/cobrancas";
 import Link from "next/link";
 import { exigirAdmin } from "@/lib/auth";
 import { BRL, BRL0, data, diasAte, RENOVACAO_DIAS, hojeSP } from "@/lib/format";
@@ -22,7 +23,7 @@ export default async function AdminHome() {
     supabase.from("pagamentos").select("id, valor, created_at, proprietarios(nome)").eq("status", "informado").order("created_at"),
     supabase.from("renovacoes").select("contrato_id, decisao, valor_proposto").is("concluida_em", null),
     supabase.from("cobrancas").select("total, pago, abonado, descontado").eq("status", "aberta").lt("vencimento", hoje),
-    supabase.from("alugueis").select("valor").is("recebido_em", null).lt("vencimento", hoje).gte("competencia", hoje.slice(0, 8) + "01"),
+    (await controlaAlugueis(supabase)) ? supabase.from("alugueis").select("valor").is("recebido_em", null).lt("vencimento", hoje).gte("competencia", hoje.slice(0, 8) + "01") : Promise.resolve({ data: [] }),
     supabase.from("despesas").select("*", { count: "exact", head: true }).eq("status", "rascunho").eq("valor_total", 0),
   ]);
   const respostas = (rens ?? []) as Pick<Renovacao, "contrato_id" | "decisao" | "valor_proposto">[];

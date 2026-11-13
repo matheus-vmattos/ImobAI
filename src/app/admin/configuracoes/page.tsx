@@ -33,6 +33,11 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
         <div className="field" style={{ maxWidth: 240 }}><label className="label" htmlFor="repasse_dia">Dia do repasse no mês seguinte</label>
           <input id="repasse_dia" name="repasse_dia" inputMode="numeric" defaultValue={c.repasse_dia} />
           <small>O proprietário vê “Você recebe … dia {c.repasse_dia}”.</small></div>
+        <div className="sec-h" style={{ marginTop: 6 }}><h2>Aluguel</h2></div>
+        <label className="small" style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <input type="checkbox" name="controla_alugueis" value="1" defaultChecked={c.controla_alugueis} style={{ width: "auto", marginTop: 3 }} />
+          <span>Controlar aqui se o inquilino pagou o aluguel<br /><small className="muted">Desligado (recomendado): o recebimento fica no seu ERP, o proprietário vê só o valor do aluguel e o repasse usa o valor do contrato.</small></span>
+        </label>
         <div className="actions"><button className="btn primary">Salvar</button></div>
       </form>
     </>

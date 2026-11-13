@@ -13,7 +13,7 @@ export async function rotinaDiaria(db: SupabaseClient, agora = new Date()) {
   const diaSemana = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(dia);
   const hoje = hojeSP(agora);
   // aluguéis do mês de todos os contratos, para o proprietário ver pago/atrasado mesmo sem a imobiliária abrir a tela
-  await garantirAlugueis(db, hoje.slice(0, 7));
+  if (cfg.controla_alugueis) await garantirAlugueis(db, hoje.slice(0, 7));
   const recorrentes = await lancarRecorrentes(db, hoje);
   let cobrancas = 0;
   if (diaSemana === Number(cfg.cobranca_dia)) {

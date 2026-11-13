@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
-import { getSessao } from "@/lib/auth";
+import { getSessaoPortal } from "@/lib/auth";
 import { carregarConta, saldoCobranca } from "../conta";
 import { DadosPagamento } from "../DadosPagamento";
 import { FormPagamento } from "./FormPagamento";
 
 export default async function Pagar({ searchParams }: { searchParams: Promise<{ cobranca?: string; erro?: string }> }) {
   const { cobranca, erro } = await searchParams;
-  const { supabase, cadastros } = await getSessao();
+  const { supabase, cadastros } = await getSessaoPortal();
   const conta = await carregarConta(supabase);
   const pagadores = cadastros.map((c) => ({ ...c, devido: conta.abertas.filter((a) => a.pagador_id === c.id).reduce((s, a) => s + saldoCobranca(a), 0) }))
     .sort((a, b) => b.devido - a.devido);

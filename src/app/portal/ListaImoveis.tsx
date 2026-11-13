@@ -40,7 +40,7 @@ export function ListaImoveis({ imoveis, condominios }: { imoveis: ImovelPortal[]
             <td><StatusPill status={i.status} /></td>
             <td className="r num">{i.status === "indisponivel" ? "—" : BRL0(i.aluguel)}</td>
             <td className="num">{i.status === "devolucao" ? <span style={{ color: "var(--dev)" }}>Chaves {data(i.entregaChaves)}</span> : i.status === "locado" ? data(i.fim) : i.motivo ? <span className="muted">{i.motivo}</span> : "—"}</td>
-            <td className="r num" style={{ color: dias != null && dias <= RENOVACAO_DIAS ? "var(--warn)" : undefined }}>{dias != null ? `${dias} d` : "—"}</td>
+            <td className="r num" style={{ color: dias != null && dias <= RENOVACAO_DIAS ? "var(--warn)" : undefined }}>{dias != null ? (dias < 0 ? `venceu há ${-dias} d` : `${dias} d`) : "—"}</td>
             <td className="muted">{i.inquilino ?? "—"}</td>
             <td className="go">›</td>
           </tr>

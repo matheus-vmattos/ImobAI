@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Icon } from "@/components/Icon";
-import { getSessao } from "@/lib/auth";
+import { getSessaoPortal } from "@/lib/auth";
 import { BRL, data, nomeMes, hojeSP, diaSP } from "@/lib/format";
 import { MARCA } from "@/lib/marca";
 import { carregarConta, saldoCobranca } from "../conta";
@@ -13,7 +13,7 @@ const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julh
 
 export default async function Extrato({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string; ver?: string }> }) {
   const { ok, erro, ver } = await searchParams;
-  const { supabase } = await getSessao();
+  const { supabase } = await getSessaoPortal();
   const [conta, { data: reps }] = await Promise.all([
     carregarConta(supabase),
     supabase.from("repasses").select("id, competencia, liquido, fechado_em, linhas").order("fechado_em", { ascending: false }).limit(60),
