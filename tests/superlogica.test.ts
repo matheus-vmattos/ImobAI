@@ -75,3 +75,14 @@ test("monta as abas: tira Rateio e duplicado, IPTU comum vai para o prédio", ()
   assert.ok(c.avisos.some((a) => a.msg.includes("Código 202") && a.msg.includes("I 202")));
   assert.deepEqual(r.contratos.map((x) => [x.inquilino, x.inicio, x.fim, x.dia_vencimento, x.a_conferir]), [["Maria da Silva", "2025-11-01", "2028-04-30", 10, true]]);
 });
+
+test("repetido: o código com I (ativo) fica, mesmo vago e sem contrato", () => {
+  const base = { aluguel: 1000, taxa: 10, iptu: null, agua: null, energia: null, observacao: null, donos: [{ nome: "Alfa", doc: null, percentual: 100 }] };
+  const c = montarAbas([
+    { ...base, codigo: "300", endereco: "Rua Sol nº5, Apto 101, Centro, Cidade-RJ CEP: 28000-000", vazio: false },
+    { ...base, codigo: "I 300", endereco: "Rua Sol nº5, Apto 101, Centro, Cidade-RJ CEP: 28000-000", vazio: true },
+    { ...base, codigo: "I 301", endereco: "Rua Sol nº5, Apto 102, Centro, Cidade-RJ CEP: 28000-000", vazio: true },
+  ], [], {}, "2026-11-13");
+  const r = validar(c.abas);
+  assert.deepEqual(r.imoveis.map((i) => i.codigo), ["I 300", "I 301"]);
+});

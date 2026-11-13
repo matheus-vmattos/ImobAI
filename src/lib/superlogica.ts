@@ -203,8 +203,9 @@ export function montarAbas(imoveisSL: ImovelSL[], contratosSL: ContratoSL[], ja:
   for (const l of linhas) { const k = `${chave(l.cond)}|${chave(l.id)}`; porChave.set(k, [...(porChave.get(k) ?? []), l]); }
   const ficam: Linha[] = [];
   for (const grupo of porChave.values()) {
+    // prioridade: tem contrato > código com "I" (o ativo, que carrega o contrato) > alugado > código mais novo
     const ordem = [...grupo].sort((a, b) => Number(doContrato.has(b.it.codigo)) - Number(doContrato.has(a.it.codigo))
-      || Number(!b.it.vazio) - Number(!a.it.vazio) || Number(/^[A-Z]/.test(b.it.codigo)) - Number(/^[A-Z]/.test(a.it.codigo))
+      || Number(/^[A-Z]/.test(b.it.codigo)) - Number(/^[A-Z]/.test(a.it.codigo)) || Number(!b.it.vazio) - Number(!a.it.vazio)
       || Number(b.it.codigo.replace(/\D/g, "")) - Number(a.it.codigo.replace(/\D/g, "")));
     ficam.push(ordem[0]);
     for (const d of ordem.slice(1)) av("Imóveis", `Código ${d.it.codigo} (${d.id}${d.cond ? `, ${d.cond}` : ""}) parece repetido do ${ordem[0].it.codigo}: ficou de fora.`);
